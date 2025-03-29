@@ -1,4 +1,7 @@
 import random
+
+
+
 from turtle import *
 from snake import Snake
 import time
