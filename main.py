@@ -1,7 +1,5 @@
 import random
 
-
-
 from turtle import *
 from snake import Snake
 import time
@@ -23,20 +21,24 @@ food = Food()
 scoreboard = Score()
 food_2.hideturtle()
 
+# not useful for now
+# def countdown(t):
+#     while t > 0:
+#         print(t)
+#         time.sleep(1)  # Pause execution for 1 second
+#         t -= 1
+#     print("Time's up!")
 
-# you can try to add a timer for the bonus to disappear here but note the stuff seems to be lagging check why,
-# could be too much memory being used.
-def countdown(t):
-    while t > 0:
-        print(t)
-        time.sleep(1)  # Pause execution for 1 second
-        t -= 1
-    print("Time's up!")
+def hide_bonus_food():
+    food_2.hideturtle()
+    global bonus_active
+    bonus_active = False
 
 
 # Set the initial time in seconds
 initial_time = 5
-
+bonus_active = False
+bonus_timer = 5000  # 5 seconds in milliseconds
 a = 1
 game_is_on = True
 while game_is_on:
@@ -51,26 +53,21 @@ while game_is_on:
         food.new_position()
         a += 1
 
-    # its showing but not recording.
-    if a % 5 == 0:
-        print(a)
+    # detection with bonus point/food
+    if a % 5 == 0 and not bonus_active:
+        bonus_active = True
+        food_2.new_position()
         food_2.showturtle()
-        if snake.head.distance(food_2) < 15:
-            scoreboard.update()
-            snake.extend()
-            scoreboard.bonus_results()
-            food_2.new_position()
-            food_2.clear()
-            food_2.hideturtle()
-            a += 1
-            if a % 5 == 0:
-                food_2.hideturtle()
+        screen.ontimer(lambda: hide_bonus_food(), bonus_timer)
 
-    # you can try to add a timer for the bonus to disappear here but note the stuff seems to be lagging check why,
-    # could be too much memory being used.
-    # else:
-    #   if countdown(initial_time) == 0:
-    #   food_2.clear() food_2.hideturtle()
+    if bonus_active and snake.head.distance(food_2) < 25:
+        scoreboard.update()
+        snake.extend()
+        snake.extend()
+        scoreboard.bonus_results()
+        food_2.hideturtle()
+        bonus_active = False
+        a += 1
 
     # detection with wall
     if snake.head.xcor() > 280 or snake.head.xcor() < -280 or snake.head.ycor() > 280 or snake.head.ycor() < - 280:

@@ -26,7 +26,7 @@ class Score(Turtle):
 
     # trying to give extra points might as well just create another file dedicated for this.
     def bonus_results(self):
-        self.score += 10
+        self.score += 15
         self.update()
 
     def reset(self):
