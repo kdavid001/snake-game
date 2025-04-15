@@ -66,8 +66,7 @@ while True:
             game_over = True
 
 
-        # Self-collision (critical fix here)
-        # In the collision check section:
+        # collision check section:
         # Self-collision check (skip first 3 segments)
         if len(snake.body) > 3:
             head = snake.body[0]
