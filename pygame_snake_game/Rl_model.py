@@ -16,7 +16,7 @@ action_idx = {a: i for i, a in enumerate(action)}
 
 # Expanded Q-table to include food position
 try:
-    Q = np.load("q_table.npy")
+    Q = np.load("Current_q_TABLE/Q_table for Rl_model.npy")
     print("Q-table loaded.")
 except FileNotFoundError:
     Q = np.ones((
@@ -36,8 +36,9 @@ clock = pygame.time.Clock()
 plt.ion()
 episode_rewards = []
 fig, ax = plt.subplots()
-line, = ax.plot([], [], label="Episode Reward")
-ax.set_xlabel("Episode")
+line, = ax.plot([], [], label="Episode Reward", color='blue')
+ax.set_xlim(0, 10)
+ax.set_ylim(-500, 5000)  # You can adjust based on expected reward rangeax.set_xlabel("Episode")
 ax.set_ylabel("Total Reward")
 ax.set_title("Episode Rewards Over Time")
 ax.legend()
@@ -115,7 +116,7 @@ while game_action:
         # Render game
         game.render(screen, clock.get_fps())
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(120)
 
     # After episode
     if done:
@@ -123,12 +124,17 @@ while game_action:
         episode_rewards.append(total_reward)
 
         if episode % 10 == 0:
-            line.set_xdata(np.arange(len(episode_rewards)))
-            line.set_ydata(episode_rewards)
+            x_vals = np.arange(len(episode_rewards))
+            y_vals = episode_rewards
+            line.set_data(x_vals, y_vals)
+
+            ax.set_xlim(0, max(10, len(episode_rewards)))
+            ax.set_ylim(min(y_vals) - 50, max(y_vals) + 50)  # Dynamic y-limits
+
             ax.relim()
             ax.autoscale_view()
-            plt.draw()
-            plt.pause(0.01)
+            fig.canvas.draw()
+            fig.canvas.flush_events()
 
         scoreboard.reset()
         scoreboard.update(screen, clock.get_fps())
@@ -139,11 +145,11 @@ while game_action:
         print(f"Episode {episode} - Reward: {total_reward} - ε: {epsilon:.3f} - α: {alpha:.3f}")
 
 # Save the Q-table
-np.save("q_table.npy", Q)
+np.save("Current_q_TABLE/Q_table for Rl_model.npy", Q)
 print("Q-table saved!")
 
 # Optionally save to CSV (can be huge!)
-with open("q_table.csv", mode='w', newline='') as file:
+with open("csv files/q_table for RL_Model.csv", mode='w', newline='') as file:
     writer = csv.writer(file)
     q_flat = Q.reshape(-1, len(action))
     for row in q_flat:

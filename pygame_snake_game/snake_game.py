@@ -46,21 +46,36 @@ class SnakeGame:
         # Handle direction from action
         actions = ['up', 'down', 'left', 'right']
         self.snake.change_direction(actions[action])
-        self.snake.move(1 / 15)  # fixed delta time for now
 
-        reward = 0
+        self.snake.move(1 / 15)  # fixed delta time for now
+        reward = -1
         head = self.snake.body[0]
 
+        # Calculate Euclidean distance to the food
         # Calculate Euclidean distance to the food
         food_x, food_y = self.food.rect.x, self.food.rect.y
         snake_x, snake_y = head.x, head.y
         distance_to_food = math.sqrt((food_x - snake_x) ** 2 + (food_y - snake_y) ** 2)
 
-        # Reward for getting closer to the food
-        previous_distance = self.previous_distance if hasattr(self, 'previous_distance') else distance_to_food
-        if distance_to_food < previous_distance:
-            reward += 0.1  # small reward for getting closer to the food
-        self.previous_distance = distance_to_food  # Update previous distance
+        # Initialize previous distance if needed
+        if not hasattr(self, 'previous_distance'):
+            self.previous_distance = distance_to_food
+
+        # Calculate distance change
+        distance_change = self.previous_distance - distance_to_food
+
+        # Reward/penalty based on movement toward/away from food
+        if abs(distance_change) > 2:  # Only consider meaningful movements
+            if distance_change > 0:  # Moved closer
+                reward += distance_change * 0.15
+            else:  # Moved away
+                reward -= 0.05 * abs(distance_change)  # Smaller penalty for moving away
+
+        # Bonus for being very close (helps with final approach)
+        if distance_to_food < 15:
+            reward += 0.1 * (15 - distance_to_food)
+
+        self.previous_distance = distance_to_food
 
         # Check collisions
         if (head.left < 0 or head.right > self.width or
@@ -68,13 +83,13 @@ class SnakeGame:
             any(head.colliderect(seg) for seg in self.snake.body[3:])):
             self.done = True
             # self.reset()
-            reward = -10
+            reward = -50
             return self.get_state(), reward, self.done
 
         # To Check food collision
         if head.colliderect(self.food.rect):
             self.scoreboard.increase_score()
-            reward = 1
+            reward = +100
             self.snake.add_segment()
             self.food.respawn()
 
