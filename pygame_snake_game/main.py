@@ -65,9 +65,8 @@ while True:
             game_active = False
             game_over = True
 
-
         # collision check section:
-        # Self-collision check (skip first 3 segments)
+        # Self-collision check (skip first 3 segments) so it doesnt collide with itself at the start of the game
         if len(snake.body) > 3:
             head = snake.body[0]
             for segment in snake.body[3:]:
@@ -79,7 +78,7 @@ while True:
         # In the food collision handling section:
         if snake.body[0].colliderect(food.rect):
             food = Food(width, height)
-            # Ensure food doesn't spawn on snake
+            # Ensures food doesn't spawn on snake
             while any(segment.colliderect(food.rect) for segment in snake.body):
                 food = Food(width, height)
             # scoreboard.result(screen)

@@ -33,7 +33,7 @@ clock = pygame.time.Clock()
 
 
 class DQN(nn.Module):
-    """Deep Q-Network with similar state input to your Q-table"""
+    """Deep Q-Network with similar state input to  Q-table"""
 
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
@@ -63,7 +63,7 @@ class DQNAgent:
         self.target_net.eval()
 
     def get_state(self, game_state):
-        """Same state representation as your original code"""
+        """ state representation """
         head = game_state['snake_head']
         food = game_state['food']
         body = game_state['snake_body']
@@ -173,7 +173,7 @@ for episode in range(5000):
         action = agent.act(current_state)
         next_state, reward, done = game.step(action)
 
-        # Keep your existing reward structure
+        # reward structure
         prev_dist = math.dist(state['snake_head'], state['food'])
         new_dist = math.dist(next_state['snake_head'], next_state['food'])
         reward += 0.1 * (prev_dist - new_dist) / BLOCK_SIZE
@@ -199,16 +199,16 @@ for episode in range(5000):
 
 # Cleanup
 torch.save(agent.policy_net.state_dict(), 'weight file for DQN/snake_dqn.pth')
-
 params = agent.policy_net.state_dict()
 
+# Note Csv files of the weights are large
 with open("csv files/DQN-Weights.csv", mode='w', newline='') as file:
     writer = csv.writer(file)
     for key, weight in params.items():
-        writer.writerow([key])  # Layer name
+        writer.writerow([key])
         flat_weights = weight.flatten().tolist()
         writer.writerow(flat_weights)  # Weights in one row
-        writer.writerow([])  # Empty line for readability
+        writer.writerow([])
     print("DQN-Weight saved as csv!")
 
 print("Saved dqn.pth")

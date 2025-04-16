@@ -141,6 +141,8 @@ for episode in range(EPISODES):
     # # Update plot every 10 episodes
     # if episode % 10 == 0:
     #     update_plot()
+
+    # consider saving this in a dictionary or file so it can be plotted
     print(f"Ep {episode:04d} | Rewards: {total_reward:3.0f} | ε: {EPSILON:.3f} | Mean: {mean_scores[-1]:.1f}")
 
 # Cleanup

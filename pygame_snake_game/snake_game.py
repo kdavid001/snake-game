@@ -51,8 +51,7 @@ class SnakeGame:
         reward = -1
         head = self.snake.body[0]
 
-        # Calculate Euclidean distance to the food
-        # Calculate Euclidean distance to the food
+        # to Calculate Euclidean distance to the food
         food_x, food_y = self.food.rect.x, self.food.rect.y
         snake_x, snake_y = head.x, head.y
         distance_to_food = math.sqrt((food_x - snake_x) ** 2 + (food_y - snake_y) ** 2)
@@ -65,7 +64,7 @@ class SnakeGame:
         distance_change = self.previous_distance - distance_to_food
 
         # Reward/penalty based on movement toward/away from food
-        if abs(distance_change) > 2:  # Only consider meaningful movements
+        if abs(distance_change) > 2:  # Only considers meaningful movements
             if distance_change > 0:  # Moved closer
                 reward += distance_change * 0.15
             else:  # Moved away
@@ -93,7 +92,7 @@ class SnakeGame:
             self.snake.add_segment()
             self.food.respawn()
 
-            # To Ensure it doesn't spawn on the snake
+            # To Ensure the food doesn't spawn on the snake
             while any(seg.colliderect(self.food.rect) for seg in self.snake.body):
                 self.food.respawn()
 
@@ -103,7 +102,7 @@ class SnakeGame:
         screen.fill("black")
         self.food.draw(screen)
         self.snake.draw(screen)
-        self.scoreboard.update(screen, fps)  # Update scoreboard with current FPS
+        self.scoreboard.update(screen, fps)
 
     def get_state(self):
         head = self.snake.body[0]

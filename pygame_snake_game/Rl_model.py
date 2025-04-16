@@ -38,7 +38,7 @@ episode_rewards = []
 fig, ax = plt.subplots()
 line, = ax.plot([], [], label="Episode Reward", color='blue')
 ax.set_xlim(0, 10)
-ax.set_ylim(-500, 5000)  # You can adjust based on expected reward rangeax.set_xlabel("Episode")
+ax.set_ylim(-500, 500)
 ax.set_ylabel("Total Reward")
 ax.set_title("Episode Rewards Over Time")
 ax.legend()
@@ -75,9 +75,9 @@ while game_action:
                 done = True
 
         if (0 <= x_idx < width // game.block_size and
-            0 <= y_idx < height // game.block_size and
-            0 <= fx_idx < width // game.block_size and
-            0 <= fy_idx < height // game.block_size):
+                0 <= y_idx < height // game.block_size and
+                0 <= fx_idx < width // game.block_size and
+                0 <= fy_idx < height // game.block_size):
             if random.random() < epsilon:
                 select_action = random.choice(action)
             else:
@@ -95,25 +95,25 @@ while game_action:
         new_fy_idx = new_food_y // game.block_size
 
         if (0 <= x_idx < width // game.block_size and
-            0 <= y_idx < height // game.block_size and
-            0 <= fx_idx < width // game.block_size and
-            0 <= fy_idx < height // game.block_size and
-            0 <= new_x_idx < width // game.block_size and
-            0 <= new_y_idx < height // game.block_size and
-            0 <= new_fx_idx < width // game.block_size and
-            0 <= new_fy_idx < height // game.block_size):
-
+                0 <= y_idx < height // game.block_size and
+                0 <= fx_idx < width // game.block_size and
+                0 <= fy_idx < height // game.block_size and
+                0 <= new_x_idx < width // game.block_size and
+                0 <= new_y_idx < height // game.block_size and
+                0 <= new_fx_idx < width // game.block_size and
+                0 <= new_fy_idx < height // game.block_size):
+            # Bellman's Equation for discrete values
             current_q = Q[x_idx, y_idx, fx_idx, fy_idx, action_idx[select_action]]
             max_future_q = np.max(Q[new_x_idx, new_y_idx, new_fx_idx, new_fy_idx])
             new_q = (1 - alpha) * current_q + alpha * (reward + gamma * max_future_q)
             Q[x_idx, y_idx, fx_idx, fy_idx, action_idx[select_action]] = new_q
 
-        # Update indices for next iteration
+        # Updates indices for next iteration
         x_idx, y_idx = new_x_idx, new_y_idx
         fx_idx, fy_idx = new_fx_idx, new_fy_idx
         total_reward += reward
 
-        # Render game
+        # Renders game
         game.render(screen, clock.get_fps())
         pygame.display.flip()
         clock.tick(120)
@@ -148,10 +148,10 @@ while game_action:
 np.save("Current_q_TABLE/Q_table for Rl_model.npy", Q)
 print("Q-table saved!")
 
-# Optionally save to CSV (can be huge!)
-with open("csv files/q_table for RL_Model.csv", mode='w', newline='') as file:
-    writer = csv.writer(file)
-    q_flat = Q.reshape(-1, len(action))
-    for row in q_flat:
-        writer.writerow(row)
-    print("Q-table.csv saved!")
+# Optional save to CSV (can be Very huge!) due to using Q-learning with many states
+# with open("csv files/q_table for RL_Model.csv", mode='w', newline='') as file:
+#     writer = csv.writer(file)
+#     q_flat = Q.reshape(-1, len(action))
+#     for row in q_flat:
+#         writer.writerow(row)
+#     print("Q-table.csv saved!")
