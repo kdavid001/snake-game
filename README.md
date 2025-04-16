@@ -1,4 +1,4 @@
-# Snake Game with Reinforcement Learning (DQN)
+# Snake Game with Reinforcement Learning
 
 Welcome to my **Snake Game** project! This game is based on the classic Snake game, but with an additional layer of complexity where the snake is trained using **Reinforcement Learning (RL)** to navigate the grid and collect food autonomously. This project employs both traditional **Q-learning** and advanced **Deep Q-Networks (DQN)** to enable the agent to learn optimal behaviour.
 
