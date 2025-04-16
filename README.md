@@ -56,6 +56,18 @@ After recognising the limitations of traditional Q-learning, I decided to use **
 - The game mechanics are complete, but there are still optimisations to be made, especially around the DQN model and its convergence.
 - Training is ongoing, and further improvements are expected as more data is collected.
 
+## Training Videos
+
+### Training with just Q-learning
+https://github.com/user-attachments/assets/9a7807bd-ef47-43d8-91c9-7b2612a8846d
+
+### Training with DQN
+
+
+https://github.com/user-attachments/assets/c5fbc0c0-d70d-4c23-a66e-f8ea0ef7c8a0 
+
+
+
 ## How to Run the Game
 
 To run the snake game with the RL agent:
