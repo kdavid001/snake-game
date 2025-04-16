@@ -68,7 +68,7 @@ def get_state(game_state):
                  (head[0] + BLOCK_SIZE, head[1])]:
         if (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT) or ((x, y) in body):
             danger += 1
-    danger_level = min(danger, 2)
+    danger_level = min(danger, 2) # I originally used 3 but it didnt work so 2 is the best.
 
     return grid_x, grid_y, food_dir, danger_level
 
