@@ -94,6 +94,8 @@ while game_action:
         new_fx_idx = new_food_x // game.block_size
         new_fy_idx = new_food_y // game.block_size
 
+        # This section is to make sure the Q-values are being updated if both the current and next state are safe to
+        # index
         if (0 <= x_idx < width // game.block_size and
                 0 <= y_idx < height // game.block_size and
                 0 <= fx_idx < width // game.block_size and
@@ -102,6 +104,7 @@ while game_action:
                 0 <= new_y_idx < height // game.block_size and
                 0 <= new_fx_idx < width // game.block_size and
                 0 <= new_fy_idx < height // game.block_size):
+
             # Bellman's Equation for discrete values
             current_q = Q[x_idx, y_idx, fx_idx, fy_idx, action_idx[select_action]]
             max_future_q = np.max(Q[new_x_idx, new_y_idx, new_fx_idx, new_fy_idx])
