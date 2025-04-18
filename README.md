@@ -84,10 +84,10 @@ To run the snake game with the RL agent:
 4. The snake will automatically start training. If a trained model file is not found, it will create one and start training from the beginning.
    
 Future Work
-	•	Policy Improvement: Continue optimising the DQN model to improve the agent’s decision-making process.
-	•	Enhanced Agent Behaviour: Implement more sophisticated reward shaping to speed up convergence.
-	•	Use of Hamiltonian Cycle: Incorporate Hamiltonian cycle logic for fail-safe movement.
-	•	User Interface: Enhance the game interface for better user interaction and visualisation of training progress.
+	<li>	Policy Improvement: Continue optimising the DQN model to improve the agent’s decision-making process. </li>
+	<li>	Enhanced Agent Behaviour: Implement more sophisticated reward shaping to speed up convergence. </li>
+	<li>	Use of Hamiltonian Cycle: Incorporate Hamiltonian cycle logic for fail-safe movement. </li>
+	<li>	User Interface: Enhance the game interface for better user interaction and visualisation of training progress. </li>
 
 ## Contributions
 Feel free to contribute by:
