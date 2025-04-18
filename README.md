@@ -91,11 +91,10 @@ Future Work
 
 ## Contributions
 Feel free to contribute by:
-<ul>
 	<li> Suggesting improvements to the RL model.</li>
 	<li> Proposing optimisations for the game’s mechanics.</li>
 	<li> Reporting any bugs or issues you encounter.</li>
- </ul>
+ 
  ## License
 
 This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.
