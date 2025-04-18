@@ -142,41 +142,48 @@ class DQNAgent:
 
 # Training Loop
 agent = DQNAgent()
+import os
+
+# loadS weights if available
+WEIGHT_PATH = 'weight file for DQN/snake_dqn.pth'
+if os.path.exists(WEIGHT_PATH):
+    agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH))
+    agent.target_net.load_state_dict(agent.policy_net.state_dict())
+    agent.policy_net.eval()  # switch to eval mode during testing
+    print("Loaded saved weights from file.")
+
 scores = []
 mean_scores = []
+best_mean_score = float('-inf')
 
 for episode in range(5000):
     state = game.reset()
     current_state = agent.get_state(state)
     total_reward = 0
     done = False
-
     while not done:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                torch.save(agent.policy_net.state_dict(), 'weight file for DQN/snake_dqn.pth')
-                params = agent.policy_net.state_dict()
+                if mean_scores and mean_scores[-1] > best_mean_score:
+                    best_mean_score = mean_scores[-1]
+                    torch.save(agent.policy_net.state_dict(), 'weight file for DQN/snake_dqn.pth')
+                    params = agent.policy_net.state_dict()
+                    with open("csv files/DQN-Weights.csv", mode='w', newline='') as file:
+                        writer = csv.writer(file)
+                        for key, weight in params.items():
+                            writer.writerow([key])  # Layer name
+                            flat_weights = weight.flatten().tolist()
+                            writer.writerow(flat_weights)  # Weights in one row
+                            writer.writerow([])  # Empty line for readability
+                        print("DQN-Weight saved as csv!")
 
-                with open("csv files/DQN-Weights.csv", mode='w', newline='') as file:
-                    writer = csv.writer(file)
-                    for key, weight in params.items():
-                        writer.writerow([key])  # Layer name
-                        flat_weights = weight.flatten().tolist()
-                        writer.writerow(flat_weights)  # Weights in one row
-                        writer.writerow([])  # Empty line for readability
-                    print("DQN-Weight saved as csv!")
-
-                print("Saved dqn.pth")
+                    print("Saved dqn.pth")
                 pygame.quit()
                 sys.exit()
 
         action = agent.act(current_state)
         next_state, reward, done = game.step(action)
 
-        # reward structure
-        prev_dist = math.dist(state['snake_head'], state['food'])
-        new_dist = math.dist(next_state['snake_head'], next_state['food'])
-        reward += 0.1 * (prev_dist - new_dist) / BLOCK_SIZE
 
         next_state_processed = agent.get_state(next_state)
 
