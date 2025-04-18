@@ -51,8 +51,8 @@ After recognising the limitations of traditional Q-learning, I decided to use **
 ## Current Status
 
 - The snake is currently being trained using **DQN** and is gradually improving.
-- I am going to research the Hamiltonian cycle strategy to implement as a fallback to prevent the snake from getting stuck in complex situations.
-	- I got this idea from <a href="https://www.youtube.com/watch?v=tjQIO1rqTBE">this youtube video</a> but the algorithm was gotten from <a href="https://johnflux.com/page/2/">John Tapsell</a>
+- I am going to research the Hamiltonian cycle strategy to implement as a fallback to prevent the snake from getting stuck in complex situations it was invented by <a href="https://openstax.org/books/contemporary-mathematics/pages/12-7-hamilton-cycles#:~:text=In%201857%2C%20a%20mathematician%20named,visited%20every%20vertex%20exactly%20once.">William Hamilton</a>
+	- I got this idea from <a href="https://www.youtube.com/watch?v=tjQIO1rqTBE">this youtube video</a> but the method was gotten from <a href="https://johnflux.com/page/2/">John Tapsell</a>
 - The game mechanics are complete, but there are still optimisations to be made, especially around the DQN model and its convergence.
 - Training is ongoing, and further improvements are expected as more data is collected.
 
