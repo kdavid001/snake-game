@@ -74,7 +74,7 @@ To run the snake game with the RL agent:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/snake_game.git
+   git clone https://github.com/kdavid001/snake_game.git
    cd pygame_snake_game
    ```
 2. Install dependencies (make sure you have Python 3 and Pygame installed):
