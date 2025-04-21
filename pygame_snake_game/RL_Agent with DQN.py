@@ -39,6 +39,7 @@ def save_weights_to_csv(state_dict, path):
         writer = csv.writer(file)
         for key, weight in state_dict.items():
             writer.writerow([key])
+            flat_weights = weight.flatten().tolist()
             writer.writerow(flat_weights)
             writer.writerow([])
     print(f"Weights saved to {path}")
