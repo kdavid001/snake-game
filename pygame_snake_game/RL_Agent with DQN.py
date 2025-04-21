@@ -2,6 +2,7 @@ import numpy as np
 import random
 import pygame
 import sys
+import os
 import math
 import torch
 import torch.nn as nn
@@ -31,10 +32,19 @@ game = SnakeGame(width=WIDTH, height=HEIGHT)
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
+# csv save function
+def save_weights_to_csv(state_dict, path):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        for key, weight in state_dict.items():
+            writer.writerow([key])
+            writer.writerow(flat_weights)
+            writer.writerow([])
+    print(f"Weights saved to {path}")
 
 class DQN(nn.Module):
-    """Deep Q-Network with similar state input to  Q-table"""
-
+    """Deep Q-Network with state representation"""
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
         self.fc = nn.Sequential(
@@ -63,31 +73,39 @@ class DQNAgent:
         self.target_net.eval()
 
     def get_state(self, game_state):
-        """ state representation """
+        """state representation with full danger detection"""
         head = game_state['snake_head']
         food = game_state['food']
         body = game_state['snake_body']
 
-        grid_x = max(0, min(head[0] // BLOCK_SIZE, GRID_WIDTH - 1))
-        grid_y = max(0, min(head[1] // BLOCK_SIZE, GRID_HEIGHT - 1))
+        # Normalized grid position
+        grid_x = head[0] // BLOCK_SIZE
+        grid_y = head[1] // BLOCK_SIZE
 
+        # Food direction (0-3: up, right, down, left)
         dx, dy = food[0] - head[0], food[1] - head[1]
         food_dir = (1 if dx > 0 else 3) if abs(dx) > abs(dy) else (2 if dy > 0 else 0)
 
+        # Danger detection in all 4 directions
         danger = 0
-        for x, y in [(head[0] - BLOCK_SIZE, head[1]),
-                     (head[0], head[1] - BLOCK_SIZE),
-                     (head[0] + BLOCK_SIZE, head[1])]:
+        # Check left, right, up, down
+        for x, y in [
+            (head[0] - BLOCK_SIZE, head[1]),  # Left
+            (head[0] + BLOCK_SIZE, head[1]),  # Right
+            (head[0], head[1] - BLOCK_SIZE),  # Up
+            (head[0], head[1] + BLOCK_SIZE)  # Down
+        ]:
             if (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT) or ((x, y) in body):
                 danger += 1
-        danger_level = min(danger, 2)
 
-        # Normalize state values
+        # Normalized danger level (0-1.0)
+        danger_level = danger / 4
+
         return torch.FloatTensor([
             grid_x / GRID_WIDTH,
             grid_y / GRID_HEIGHT,
             food_dir / 3,
-            danger_level / 2
+            danger_level
         ])
 
     def remember(self, state, action, reward, next_state, done):
@@ -133,60 +151,46 @@ class DQNAgent:
         # Decay epsilon
         self.epsilon = max(EPSILON_END, self.epsilon * EPSILON_DECAY)
 
-        # Update target network
+        # Update target network periodically
         if self.steps_done % 100 == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.steps_done += 1
 
 
-# Training Loop
+# Training Setup
 agent = DQNAgent()
-import os
-
-# loadS weights if available
-WEIGHT_PATH = 'weight file for DQN/snake_dqn.pth'
-if os.path.exists(WEIGHT_PATH):
-    agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH))
-    agent.target_net.load_state_dict(agent.policy_net.state_dict())
-    agent.policy_net.eval()  # switch to eval mode during testing
-    print("Loaded saved weights from file.")
-
 scores = []
 mean_scores = []
 best_mean_score = float('-inf')
 
+# Model Loading
+WEIGHT_PATH = 'weight file for DQN/snake_dqn.pth'
+if os.path.exists(WEIGHT_PATH):
+    agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH), weights_only = True)
+    agent.target_net.load_state_dict(agent.policy_net.state_dict())
+    print("Loaded saved weights")
+
+# Training Loop
 for episode in range(5000):
     state = game.reset()
     current_state = agent.get_state(state)
     total_reward = 0
     done = False
+
     while not done:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                if mean_scores and mean_scores[-1] > best_mean_score:
-                    best_mean_score = mean_scores[-1]
-                    torch.save(agent.policy_net.state_dict(), 'weight file for DQN/snake_dqn.pth')
-                    params = agent.policy_net.state_dict()
-                    with open("csv files/DQN-Weights.csv", mode='w', newline='') as file:
-                        writer = csv.writer(file)
-                        for key, weight in params.items():
-                            writer.writerow([key])  # Layer name
-                            flat_weights = weight.flatten().tolist()
-                            writer.writerow(flat_weights)  # Weights in one row
-                            writer.writerow([])  # Empty line for readability
-                        print("DQN-Weight saved as csv!")
-
-                    print("Saved dqn.pth")
+                torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
+                print("Saved weights in .pth")
                 pygame.quit()
                 sys.exit()
 
         action = agent.act(current_state)
         next_state, reward, done = game.step(action)
-
-
         next_state_processed = agent.get_state(next_state)
 
+        # Store experience with negative reward for collisions
         agent.remember(current_state, action, reward, next_state_processed, done)
         agent.learn()
 
@@ -196,27 +200,34 @@ for episode in range(5000):
         # Rendering
         game.render(screen, clock.get_fps())
         pygame.display.flip()
-        clock.tick(120)
+        clock.tick(120)  # Reduce speed for better observation
 
     # Episode statistics
     scores.append(total_reward)
-    mean_scores.append(np.mean(scores[-100:]))
+    mean_score = np.mean(scores[-100:])
+    mean_scores.append(mean_score)
 
-    print(f"Ep {episode:04d} | Total Rewards: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_scores[-1]:.1f}")
+    # Save best model
+    if mean_score > best_mean_score:
+        best_mean_score = mean_score
+        torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
+        print("Saved new weights")
 
-# Cleanup
-torch.save(agent.policy_net.state_dict(), 'weight file for DQN/snake_dqn.pth')
-params = agent.policy_net.state_dict()
+    # Save weights to CSV every 500 episodes
+    if episode % 500 == 0 and episode != 0:
+        save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
+
+    print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f}")
+
+
+# Final Save at the 5000 episode
+torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
+print("Saved dqn.pth")
+pygame.quit()
 
 # Note Csv files of the weights are large
-with open("csv files/DQN-Weights.csv", mode='w', newline='') as file:
-    writer = csv.writer(file)
-    for key, weight in params.items():
-        writer.writerow([key])
-        flat_weights = weight.flatten().tolist()
-        writer.writerow(flat_weights)  # Weights in one row
-        writer.writerow([])
-    print("DQN-Weight saved as csv!")
+# Save to CSV
+save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
+print("Saved weights to scv file")
 
-print("Saved dqn.pth")
 pygame.quit()
