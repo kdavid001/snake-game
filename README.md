@@ -51,8 +51,8 @@ After recognising the limitations of traditional Q-learning, I decided to use **
 ## Current Status
 
 - The snake is currently being trained using **DQN** and is gradually improving.
-- I am going to research the Hamiltonian cycle strategy to implement as a fallback to prevent the snake from getting stuck in complex situations.
-	- I got this idea from <a href="https://www.youtube.com/watch?v=tjQIO1rqTBE">this youtube video</a> but the algorithm was gotten from <a href="https://johnflux.com/page/2/">John Tapsell</a>
+- I am going to research the Hamiltonian cycle strategy to implement as a fallback to prevent the snake from getting stuck in complex situations it was invented by <a href="https://openstax.org/books/contemporary-mathematics/pages/12-7-hamilton-cycles#:~:text=In%201857%2C%20a%20mathematician%20named,visited%20every%20vertex%20exactly%20once.">William Hamilton</a>
+	- I got this idea from <a href="https://www.youtube.com/watch?v=tjQIO1rqTBE">this youtube video</a> but the method was gotten from <a href="https://johnflux.com/page/2/">John Tapsell</a>
 - The game mechanics are complete, but there are still optimisations to be made, especially around the DQN model and its convergence.
 - Training is ongoing, and further improvements are expected as more data is collected.
 
@@ -74,7 +74,7 @@ To run the snake game with the RL agent:
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/snake_game.git
+   git clone https://github.com/kdavid001/snake_game.git
    cd pygame_snake_game
    ```
 2. Install dependencies (make sure you have Python 3 and Pygame installed):
@@ -84,14 +84,17 @@ To run the snake game with the RL agent:
 4. The snake will automatically start training. If a trained model file is not found, it will create one and start training from the beginning.
    
 Future Work
-	•	Policy Improvement: Continue optimising the DQN model to improve the agent’s decision-making process.
-	•	Enhanced Agent Behaviour: Implement more sophisticated reward shaping to speed up convergence.
-	•	Use of Hamiltonian Cycle: Incorporate Hamiltonian cycle logic for fail-safe movement.
-	•	User Interface: Enhance the game interface for better user interaction and visualisation of training progress.
+	<li>	Policy Improvement: Continue optimising the DQN model to improve the agent’s decision-making process. </li>
+	<li>	Enhanced Agent Behaviour: Implement more sophisticated reward shaping to speed up convergence. </li>
+	<li>	Use of Hamiltonian Cycle: Incorporate Hamiltonian cycle logic for fail-safe movement. </li>
+	<li>	User Interface: Enhance the game interface for better user interaction and visualisation of training progress. </li>
 
-Contributions
-
+## Contributions
 Feel free to contribute by:
-	•	Suggesting improvements to the RL model.
-	•	Proposing optimisations for the game’s mechanics.
-	•	Reporting any bugs or issues you encounter.
+	<li> Suggesting improvements to the RL model.</li>
+	<li> Proposing optimisations for the game’s mechanics.</li>
+	<li> Reporting any bugs or issues you encounter.</li>
+ 
+ ## License
+
+This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.
