@@ -168,7 +168,10 @@ best_mean_score = float('-inf')
 # Model Loading
 WEIGHT_PATH = 'weight file for DQN/snake_dqn.pth'
 if os.path.exists(WEIGHT_PATH):
-    agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH), weights_only = True)
+    # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
+    # updates overtime.
+    # agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH), weights_only = True)
+    agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH))
     agent.target_net.load_state_dict(agent.policy_net.state_dict())
     print("Loaded saved weights")
 
