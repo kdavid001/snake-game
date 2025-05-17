@@ -32,6 +32,7 @@ game = SnakeGame(width=WIDTH, height=HEIGHT)
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
+
 # csv save function
 def save_weights_to_csv(state_dict, path):
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -44,10 +45,13 @@ def save_weights_to_csv(state_dict, path):
             writer.writerow([])
     print(f"Weights saved to {path}")
 
+
 class DQN(nn.Module):
     """Deep Q-Network with state representation"""
+
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
+        # Feed-forward
         self.fc = nn.Sequential(
             nn.Linear(input_size, 128),
             nn.ReLU(),
@@ -146,6 +150,7 @@ class DQNAgent:
 
         # Optimize the model
         self.optimizer.zero_grad()
+        #Back propagation
         loss.backward()
         self.optimizer.step()
 
@@ -167,10 +172,12 @@ best_mean_score = float('-inf')
 
 # Model Loading
 WEIGHT_PATH = 'weight file for DQN/snake_dqn.pth'
+RETRAIN = True
 if os.path.exists(WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
     # updates overtime.
     # agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH), weights_only = True)
+    agent.epsilon = 0.2 if RETRAIN else EPSILON_END
     agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH))
     agent.target_net.load_state_dict(agent.policy_net.state_dict())
     print("Loaded saved weights")
@@ -222,7 +229,6 @@ for episode in range(5000):
         save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
 
     print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f}")
-
 
 # Final Save at the 5000 episode
 torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
