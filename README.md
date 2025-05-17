@@ -98,3 +98,10 @@ Feel free to contribute by:
  ## License
 
 This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.
+
+## Attribution
+
+This project was created by [David Ogunmola](https://github.com/kdavid001).  
+If you use this project in any way (including derivatives or distributions), please include visible credit to the author in your documentation, app interface, or any public display of the software.
+
+Thank you for respecting the work!
