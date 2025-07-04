@@ -19,7 +19,7 @@ GRID_HEIGHT = HEIGHT // BLOCK_SIZE
 
 # Neural Network Parameters
 STATE_SIZE = 4  # grid_x, grid_y, food_dir, danger_level
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 MEMORY_SIZE = 10000
 GAMMA = 0.95
 EPSILON_START = 1.0
@@ -32,6 +32,8 @@ game = SnakeGame(width=WIDTH, height=HEIGHT)
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+print(f"Using device: {device}")
 
 # csv save function
 def save_weights_to_csv(state_dict, path):
@@ -62,6 +64,7 @@ class DQN(nn.Module):
 
     def forward(self, x):
         return self.fc(x)
+
 
 
 class DQNAgent:
@@ -131,18 +134,21 @@ class DQNAgent:
         batch = random.sample(self.memory, BATCH_SIZE)
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        states = torch.stack(states)
-        actions = torch.LongTensor(actions)
-        rewards = torch.FloatTensor(rewards)
-        next_states = torch.stack(next_states)
-        dones = torch.FloatTensor(dones)
+        states = torch.stack(states).to(device)
+        actions = torch.LongTensor(actions).to(device)
+        rewards = torch.FloatTensor(rewards).to(device)
+        next_states = torch.stack(next_states).to(device)
+        dones = torch.FloatTensor(dones).to(device)
 
         # Current Q values
         current_q = self.policy_net(states).gather(1, actions.unsqueeze(1))
 
         # Target Q values
         with torch.no_grad():
-            next_q = self.target_net(next_states).max(1)[0]
+            # next_q = self.target_net(next_states).max(1)[0]
+            # Double DQN
+            next_actions = self.policy_net(next_states).argmax(1)
+            next_q = self.target_net(next_states).gather(1, next_actions.unsqueeze(1)).squeeze()
             target_q = rewards + (1 - dones) * GAMMA * next_q
 
         # Compute loss
@@ -166,12 +172,15 @@ class DQNAgent:
 
 # Training Setup
 agent = DQNAgent()
+agent.policy_net.to(device)
+agent.target_net.to(device)
 scores = []
 mean_scores = []
 best_mean_score = float('-inf')
 
+# TODO: Change the file name
 # Model Loading
-WEIGHT_PATH = 'weight file for DQN/snake_dqn.pth'
+WEIGHT_PATH = 'Current DQN WEIGHTS/snake_dqn.pth'
 RETRAIN = True
 if os.path.exists(WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
@@ -185,21 +194,22 @@ if os.path.exists(WEIGHT_PATH):
 # Training Loop
 for episode in range(5000):
     state = game.reset()
-    current_state = agent.get_state(state)
+    current_state = agent.get_state(state).to(device)
     total_reward = 0
     done = False
 
     while not done:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
-                print("Saved weights in .pth")
+                # torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
+                # print("Saved weights in .pth")
                 pygame.quit()
                 sys.exit()
 
         action = agent.act(current_state)
         next_state, reward, done = game.step(action)
-        next_state_processed = agent.get_state(next_state)
+        # reward = reward.to(device)
+        next_state_processed = agent.get_state(next_state).to(device)
 
         # Store experience with negative reward for collisions
         agent.remember(current_state, action, reward, next_state_processed, done)
@@ -211,7 +221,7 @@ for episode in range(5000):
         # Rendering
         game.render(screen, clock.get_fps())
         pygame.display.flip()
-        clock.tick(120)  # Reduce speed for better observation
+        clock.tick(240)  # Reduce speed for better observation
 
     # Episode statistics
     scores.append(total_reward)
@@ -225,19 +235,16 @@ for episode in range(5000):
         print("Saved new weights")
 
     # Save weights to CSV every 500 episodes
-    if episode % 500 == 0 and episode != 0:
-        save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
+    # if episode % 500 == 0 and episode != 0:
+    #     save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
 
     print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f}")
 
 # Final Save at the 5000 episode
-torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
-print("Saved dqn.pth")
-pygame.quit()
+# torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
 
 # Note Csv files of the weights are large
 # Save to CSV
-save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
-print("Saved weights to scv file")
-
+# save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
+# print("Saved weights to scv file")
 pygame.quit()
