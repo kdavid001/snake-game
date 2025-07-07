@@ -69,8 +69,9 @@ class DQN(nn.Module):
 
 class DQNAgent:
     def __init__(self):
-        self.policy_net = DQN(STATE_SIZE, 4)
-        self.target_net = DQN(STATE_SIZE, 4)
+        # Policy Network
+        self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
+        self.target_net = DQN(STATE_SIZE, 4)  # Target_network
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.memory = deque(maxlen=MEMORY_SIZE)
         self.epsilon = EPSILON_START
@@ -132,8 +133,10 @@ class DQNAgent:
             return
 
         batch = random.sample(self.memory, BATCH_SIZE)
+        # unpacks them into separate lists
         states, actions, rewards, next_states, dones = zip(*batch)
 
+        # Convert to tensors and move to GPU
         states = torch.stack(states).to(device)
         actions = torch.LongTensor(actions).to(device)
         rewards = torch.FloatTensor(rewards).to(device)
@@ -156,7 +159,7 @@ class DQNAgent:
 
         # Optimize the model
         self.optimizer.zero_grad()
-        #Back propagation
+        # Back propagation
         loss.backward()
         self.optimizer.step()
 
@@ -170,7 +173,7 @@ class DQNAgent:
         self.steps_done += 1
 
 
-# Training Setup
+# Training Setup moving to "GPU"
 agent = DQNAgent()
 agent.policy_net.to(device)
 agent.target_net.to(device)
@@ -209,7 +212,7 @@ for episode in range(5000):
         action = agent.act(current_state)
         next_state, reward, done = game.step(action)
         # reward = reward.to(device)
-        next_state_processed = agent.get_state(next_state).to(device)
+        next_state_processed = agent.get_state(next_state).to(device) # get the processed state and move to GPU
 
         # Store experience with negative reward for collisions
         agent.remember(current_state, action, reward, next_state_processed, done)
