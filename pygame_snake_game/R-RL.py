@@ -1,16 +1,17 @@
-#Rainbow Rl implementation
-import numpy as np
-import random
-import pygame
-import sys
+import csv
 import os
-import math
+import random
+import sys
+
+import numpy as np
+import pygame
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
-from collections import deque
+
 from snake_game import SnakeGame
-import csv
+from collections import deque
 
 # Game Constants
 WIDTH, HEIGHT = 800, 600
@@ -27,6 +28,9 @@ EPSILON_START = 1.0
 EPSILON_END = 0.01
 EPSILON_DECAY = 0.995
 LEARNING_RATE = 0.001
+# beta_start = 0.4
+# beta_frames = 100000
+# beta = min(1.0, beta_start + self.steps_done * (1.0 - beta_start) / beta_frames)
 
 # Initialize Game
 game = SnakeGame(width=WIDTH, height=HEIGHT)
@@ -35,6 +39,7 @@ clock = pygame.time.Clock()
 
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
+
 
 # csv save function
 def save_weights_to_csv(state_dict, path):
@@ -49,37 +54,211 @@ def save_weights_to_csv(state_dict, path):
     print(f"Weights saved to {path}")
 
 
+# TODO: step 2 - Noisy Layer
+
+class NoisyLinear(nn.Module):
+    """
+    Replace all the dense layer with the noisy layer
+    nn.Linear(input_size, 128) is changed to NoisyLinear(input_size, 128),
+    """
+
+    def __init__(self, in_features, out_features, sigma_init=0.5):
+        super(NoisyLinear, self).__init__()
+        self.in_features = in_features
+        self.out_features = out_features
+
+        # Mean parameters
+        self.weight_mu = nn.Parameter(torch.empty(out_features, in_features))
+        self.bias_mu = nn.Parameter(torch.empty(out_features))
+
+        # Sigma (noise scale) parameters
+        self.weight_sigma = nn.Parameter(torch.empty(out_features, in_features))
+        self.bias_sigma = nn.Parameter(torch.empty(out_features))
+
+        self.sigma_init = sigma_init
+        self.reset_parameters()
+
+        # Register buffers for sampled noise (non-trainable)
+        self.register_buffer('weight_epsilon', torch.zeros(out_features, in_features))
+        self.register_buffer('bias_epsilon', torch.zeros(out_features))
+
+    def reset_parameters(self):
+        mu_range = 1 / self.in_features ** 0.5
+        self.weight_mu.data.uniform_(-mu_range, mu_range)
+        self.bias_mu.data.uniform_(-mu_range, mu_range)
+        self.weight_sigma.data.fill_(self.sigma_init / self.in_features ** 0.5)
+        self.bias_sigma.data.fill_(self.sigma_init / self.out_features ** 0.5)
+
+    def forward(self, input):
+        # print("Input type to NoisyLinear:", type(input))
+        self.sample_noise()
+        weight = self.weight_mu + self.weight_sigma * self.weight_epsilon
+        bias = self.bias_mu + self.bias_sigma * self.bias_epsilon
+        return F.linear(input, weight, bias)
+
+    # had to modify this for to go to the GPU
+    def sample_noise(self):
+        device = self.weight_mu.device  # get current device of layer
+        epsilon_in = self._scale_noise(self.in_features, device)
+        epsilon_out = self._scale_noise(self.out_features, device)
+        self.weight_epsilon = epsilon_out.ger(epsilon_in)
+        self.bias_epsilon = epsilon_out
+
+    def _scale_noise(self, size, device):
+        x = torch.randn(size, device=device)
+        return x.sign() * x.abs().sqrt()
+
+
+"""This is the Dueling DQN"""
+
+
+# class DQN(nn.Module):
+#     """Dueling Deep Q-Network with state representation"""
+#     def __init__(self, input_size, output_size):
+#         super(DQN, self).__init__()
+#         # TODO: Step 1 - Add the Duelling DQN
+#         """ Disabled the Dueling DQN to test out the Categorical DQN """
+#         self.fc = nn.Sequential(
+#             NoisyLinear(input_size, 128),
+#             nn.ReLU(),
+#             NoisyLinear(128, 128),
+#             nn.ReLU(),
+#             # Removed this part because you’re to split the output of a common network into value + advantage.
+#             # if you added it you'd be redundantly processing the raw input separately for each stream,
+#             # which isn’t what Dueling DQN intends.
+#             # nn.Linear(128, output_size)
+#         )
+#
+#         # TODO: Step 1 - Add the Duelling DQN
+#         """ Disabled the Dueling DQN to test out the Categorical DQN """
+#         # Step 1 - added the Duelling DQN where I split the output features from the FC to a value and advantage
+#         # streams
+#
+#         # Value function
+#         self.value_stream = nn.Sequential(
+#             NoisyLinear(input_size, 128),
+#             nn.ReLU(),
+#             NoisyLinear(128, 1),
+#         )
+#
+#         # Advantage Function
+#         self.advantage_stream = nn.Sequential(
+#             NoisyLinear(input_size, 128),
+#             nn.ReLU(),
+#             NoisyLinear(128, 1),
+#         )
+#
+#     def forward(self, x):
+#         """Also part of Dueling"""
+#         x = self.fc(x)
+#         value = self.value_stream(x)
+#         advantage = self.advantage_stream(x)
+#
+#         qvals = value + (advantage - advantage.mean(dim=1, keepdim=True))
+#         return qvals
+
+
 class DQN(nn.Module):
-    """Deep Q-Network with state representation"""
+    """Distributional/Categorical Deep Q-Network with state representation"""
 
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
-        # Feed-forward
+
+        # Distributional RL parameters
+        self.V_MIN = -10
+        self.V_MAX = 10
+        self.N_ATOMS = 51
+        self.output_size = output_size
+        self.DELTA_Z = (self.V_MAX - self.V_MIN) / (self.N_ATOMS - 1)
+
         self.fc = nn.Sequential(
-            nn.Linear(input_size, 128),
+            NoisyLinear(input_size, 128),
             nn.ReLU(),
-            nn.Linear(128, 128),
-            nn.ReLU(),
-            nn.Linear(128, output_size)
+            NoisyLinear(128, 128),
+            nn.ReLU()
         )
 
-    def forward(self, x):
-        return self.fc(x)
+        self.output = NoisyLinear(128, output_size * self.N_ATOMS)
 
+    def forward(self, x):
+        # print("Input type to NoisyLinear:", type(x))
+        x = self.fc(x)
+        logits = self.output(x)
+        logits = logits.view(-1, self.output_size, self.N_ATOMS)
+        probs = F.softmax(logits, dim=2)  # Distribution over atoms
+        return probs
+
+
+# TODO: Implement a PrioritizedReplayBuffer
+
+class PrioritizedReplayBuffer:
+    """
+    I found a better PrioritizedReplayBuffer class that is more efficient but will try it later
+    link: https://github.com/Curt-Park/rainbow-is-all-you-need/blob/master/03.per.ipynb
+    """
+
+    def __init__(self, capacity, alpha=0.6):
+        self.capacity = capacity
+        self.alpha = alpha
+        self.buffer = []
+        self.priorities = np.zeros((capacity,), dtype=np.float32)
+        self.pos = 0
+
+    def add(self, experience):
+        max_prio = self.priorities.max() if self.buffer else 1.0
+
+        if len(self.buffer) < self.capacity:
+            self.buffer.append(experience)
+        else:
+            self.buffer[self.pos] = experience
+
+        self.priorities[self.pos] = max_prio  # new experience gets max priority
+        self.pos = (self.pos + 1) % self.capacity
+
+    def sample(self, batch_size, beta=0.4):
+        if len(self.buffer) == self.capacity:
+            prios = self.priorities
+        else:
+            prios = self.priorities[:self.pos]
+
+        probs = prios ** self.alpha
+        probs /= probs.sum()
+
+        indices = np.random.choice(len(self.buffer), batch_size, p=probs)
+        samples = [self.buffer[idx] for idx in indices]
+
+        total = len(self.buffer)
+        weights = (total * probs[indices]) ** (-beta)
+        weights /= weights.max()
+        weights = np.array(weights, dtype=np.float32)
+
+        return samples, indices, weights
+
+    def update_priorities(self, indices, errors):
+        for idx, error in zip(indices, errors):
+            self.priorities[idx] = abs(error) + 1e-6
 
 
 class DQNAgent:
     def __init__(self):
-        self.policy_net = DQN(STATE_SIZE, 4)
-        self.target_net = DQN(STATE_SIZE, 4)
+        # Policy Network
+        self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
+        self.target_net = DQN(STATE_SIZE, 4)  # Target_network
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
-        self.memory = deque(maxlen=MEMORY_SIZE)
+        self.memory = PrioritizedReplayBuffer(MEMORY_SIZE)
         self.epsilon = EPSILON_START
         self.steps_done = 0
 
         # Initialize target network
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
+
+        self.z = torch.linspace(self.policy_net.V_MIN, self.policy_net.V_MAX, self.policy_net.N_ATOMS).to(device)
+
+        # multistep return
+        # Buffer to temporarily store N-step transitions
+        self.N_STEP = 3  # You can tune this
+        self.n_step_buffer = deque(maxlen=self.N_STEP)
 
     def get_state(self, game_state):
         """state representation with full danger detection"""
@@ -88,8 +267,8 @@ class DQNAgent:
         body = game_state['snake_body']
 
         # Normalized grid position
-        grid_x = head[0] // BLOCK_SIZE
-        grid_y = head[1] // BLOCK_SIZE
+        grid_x = head[0] / GRID_WIDTH
+        grid_y = head[1] / GRID_HEIGHT
 
         # Food direction (0-3: up, right, down, left)
         dx, dy = food[0] - head[0], food[1] - head[1]
@@ -110,68 +289,242 @@ class DQNAgent:
         # Normalized danger level (0-1.0)
         danger_level = danger / 4
 
+        # Return consistent tensor format
         return torch.FloatTensor([
-            grid_x / GRID_WIDTH,
-            grid_y / GRID_HEIGHT,
+            grid_x,
+            grid_y,
             food_dir / 3,
             danger_level
         ])
 
+    # I modified this to accumulate the multistep return experience
     def remember(self, state, action, reward, next_state, done):
-        self.memory.append((state, action, reward, next_state, done))
+        # Convert to CPU tensors for storage
+        state = state.cpu().clone().detach() if isinstance(state, torch.Tensor) else torch.FloatTensor(state)
+        next_state = next_state.cpu().clone().detach() if isinstance(next_state, torch.Tensor) else torch.FloatTensor(
+            next_state)
+
+        self.n_step_buffer.append((state, action, reward, next_state, done))
+
+        if len(self.n_step_buffer) < self.n_step_buffer.maxlen:
+            return
+
+        # Build N-step experience
+        reward_sum = 0
+        for idx, (_, _, r, _, d) in enumerate(self.n_step_buffer):
+            reward_sum += (GAMMA ** idx) * r
+            if d:
+                break
+
+        state_n, action_n, _, _, _ = self.n_step_buffer[0]
+        _, _, _, next_state_n, done_n = self.n_step_buffer[-1]
+
+        experience = (state_n, action_n, reward_sum, next_state_n, done_n)
+        self.memory.add(experience)
+
+    # def act(self, state):
+    #     """This is for the Dueling DQN"""
+    #     if random.random() < self.epsilon:
+    #         return random.randint(0, 3)
+    #
+    #     with torch.no_grad():
+    #         q_values = self.policy_net(state)
+    #         return q_values.argmax().item()
 
     def act(self, state):
+        """This is for the Categorical DQN"""
         if random.random() < self.epsilon:
             return random.randint(0, 3)
 
         with torch.no_grad():
-            q_values = self.policy_net(state)
-            return q_values.argmax().item()
+            if isinstance(state, tuple):
+                state = state[0]
+            state = state.unsqueeze(0) if state.dim() == 1 else state  # Ensure proper shape, # Shape: (1, num_actions, N_ATOMS)
+            probs = self.policy_net(state)
+            z = torch.linspace(self.policy_net.V_MIN, self.policy_net.V_MAX, self.policy_net.N_ATOMS).to(device)
+            q = (probs * z).sum(dim=2)  # Shape: (1, num_actions)
+            action = q.argmax(1).item()
+        return action
+
+    # def learn(self):
+    #     """For the Dueling DQN"""
+    #     # 1. Check if enough samples are available in replay buffer
+    #     if len(self.memory.buffer) < BATCH_SIZE:
+    #         return
+    #
+    #     # 2. Anneal beta (importance-sampling correction) from 0.4 to 1.0 over time
+    #     beta_start = 0.4
+    #     beta_frames = 100000
+    #     beta = min(1.0, beta_start + self.steps_done * (1.0 - beta_start) / beta_frames)
+    #
+    #     # 3. Sample batch from prioritized replay buffer
+    #     batch, indices, weights = self.memory.sample(BATCH_SIZE, beta)
+    #
+    #     # 4. unpacks them into separate lists
+    #     states, actions, rewards, next_states, dones = zip(*batch)
+    #
+    #     # Convert to tensors and move to GPU
+    #     states = torch.stack(states).to(device)
+    #     actions = torch.LongTensor(actions).to(device)
+    #     rewards = torch.FloatTensor(rewards).to(device)
+    #     next_states = torch.stack(next_states).to(device)
+    #     dones = torch.FloatTensor(dones).to(device)
+    #     weights = torch.FloatTensor(weights).to(device)
+    #
+    #     # 5. Compute  Current Q values
+    #     current_q = self.policy_net(states).gather(1, actions.unsqueeze(1))
+    #     current_q = current_q.squeeze()
+    #
+    #     # Compute Target Q values
+    #     with torch.no_grad():
+    #         # next_q = self.target_net(next_states).max(1)[0]
+    #         # Double DQN
+    #         next_actions = self.policy_net(next_states).argmax(1)
+    #         next_q = self.target_net(next_states).gather(1, next_actions.unsqueeze(1)).squeeze()
+    #         target_q = rewards + (1 - dones) * (GAMMA ** self.N_STEP) * next_q
+    #
+    #     # Compute loss and TD errors - Temporal Difference Error
+    #     td_errors = target_q - current_q
+    #     loss = (td_errors.pow(2) * weights).mean()  # Weight loss by importance-sampling weights
+    #
+    #     # Optimize the model
+    #     self.optimizer.zero_grad()
+    #     # Back propagation
+    #     loss.backward()
+    #     self.optimizer.step()
+    #
+    #     # Update priorities in replay buffer based on TD errors
+    #     td_errors_np = td_errors.detach().cpu().numpy()  # pass the td_error from the GPU to the CPU to, so you can pass
+    #     # it in numpy
+    #     self.memory.update_priorities(indices, np.abs(td_errors_np))
+    #
+    #     # Decay epsilon
+    #     self.epsilon = max(EPSILON_END, self.epsilon * EPSILON_DECAY)
+    #
+    #     # Update target network periodically
+    #     # TODO: might want to consider changing to 1000
+    #     if self.steps_done % 100 == 0:
+    #         self.target_net.load_state_dict(self.policy_net.state_dict())
+    #
+    #     self.steps_done += 1
+    #
+    #     if done:
+    #         self.n_step_buffer.clear()
 
     def learn(self):
-        if len(self.memory) < BATCH_SIZE:
+        def project_distribution(next_probs, rewards, dones, gamma, z, V_min, V_max):
+            batch_size = rewards.shape[0]
+            N_ATOMS = z.size(0)
+            delta_z = (V_max - V_min) / (N_ATOMS - 1)
+
+            projected = torch.zeros((batch_size, N_ATOMS), device=rewards.device)
+
+            Tz = rewards.unsqueeze(1) + gamma * (1 - dones.unsqueeze(1)) * z.unsqueeze(0)
+            Tz = Tz.clamp(min=V_min, max=V_max)
+
+            b = (Tz - V_min) / delta_z
+            l = b.floor().long()
+            u = b.ceil().long()
+
+            l[(u > 0) * (l == u)] -= 1
+            u[(l < N_ATOMS - 1) * (l == u)] += 1
+
+            offset = torch.linspace(0, (batch_size - 1) * N_ATOMS, batch_size).long().unsqueeze(1).to(rewards.device)
+
+            projected.view(-1).index_add_(
+                0, (l + offset).view(-1),
+                (next_probs * (u.float() - b)).view(-1)
+            )
+
+            projected.view(-1).index_add_(
+                0, (u + offset).view(-1),
+                (next_probs * (b - l.float())).view(-1)
+            )
+
+            return projected
+
+        """For the Categorical DQN"""
+        if len(self.memory.buffer) < BATCH_SIZE:
             return
 
-        batch = random.sample(self.memory, BATCH_SIZE)
-        states, actions, rewards, next_states, dones = zip(*batch)
+        beta = min(1.0, 0.4 + self.steps_done * (1.0 - 0.4) / 100000)
+        batch, indices, weights = self.memory.sample(BATCH_SIZE, beta)
 
-        states = torch.stack(states).to(device)
-        actions = torch.LongTensor(actions).to(device)
-        rewards = torch.FloatTensor(rewards).to(device)
-        next_states = torch.stack(next_states).to(device)
-        dones = torch.FloatTensor(dones).to(device)
+        # Validate batch
+        if not batch:
+            return
 
-        # Current Q values
-        current_q = self.policy_net(states).gather(1, actions.unsqueeze(1))
+        # Unpack and convert to tensors
+        states = []
+        actions = []
+        rewards = []
+        next_states = []
+        dones = []
 
-        # Target Q values
+        # Process each experience in the batch
+        for experience in batch:
+            s, a, r, ns, d = experience
+            states.append(s if isinstance(s, torch.Tensor) else torch.FloatTensor(s))
+            actions.append(a)
+            rewards.append(r)
+            next_states.append(ns if isinstance(ns, torch.Tensor) else torch.FloatTensor(ns))
+            dones.append(d)
+
+        try:
+            # Stack tensors and move to device
+            states = torch.stack(states).to(device)
+            next_states = torch.stack(next_states).to(device)
+            actions = torch.LongTensor(actions).to(device)
+            rewards = torch.FloatTensor(rewards).unsqueeze(1).to(device)
+            dones = torch.FloatTensor(dones).unsqueeze(1).to(device)
+            weights = torch.FloatTensor(weights).to(device)
+
+        except RuntimeError as e:
+            print(f"Error creating tensors: {e}")
+            return
+
+        # Step 1: Get distributional predictions
+        dist = self.policy_net(states)
+        dist = dist[range(len(batch)), actions]  # Use len(batch) in case of partial batch
+
+        # Step 2: Get next-state distribution and project it
         with torch.no_grad():
-            # next_q = self.target_net(next_states).max(1)[0]
-            # Double DQN
-            next_actions = self.policy_net(next_states).argmax(1)
-            next_q = self.target_net(next_states).gather(1, next_actions.unsqueeze(1)).squeeze()
-            target_q = rewards + (1 - dones) * GAMMA * next_q
+            next_probs = self.policy_net(next_states)
+            next_q = (next_probs * self.z).sum(dim=2)
+            next_actions = next_q.argmax(dim=1)
+            next_dist = self.target_net(next_states)
+            next_dist = next_dist[range(len(batch)), next_actions]
 
-        # Compute loss
-        loss = nn.MSELoss()(current_q.squeeze(), target_q)
+            target_dist = project_distribution(
+                next_dist, rewards, dones,
+                gamma=(GAMMA ** self.N_STEP),
+                z=self.z.to(device),
+                V_min=self.policy_net.V_MIN,
+                V_max=self.policy_net.V_MAX
+            )
 
-        # Optimize the model
+        # Step 3: Compute loss
+        log_probs = torch.log(dist.clamp(min=1e-6))
+        loss_per_sample = -(target_dist * log_probs).sum(dim=1)  # Per-sample loss
+        loss = (loss_per_sample * weights).mean()  # Weighted mean loss
+
+        # Step 4: Optimize
         self.optimizer.zero_grad()
-        #Back propagation
         loss.backward()
         self.optimizer.step()
 
-        # Decay epsilon
-        self.epsilon = max(EPSILON_END, self.epsilon * EPSILON_DECAY)
+        # Step 5: Update priorities
+        errors = loss_per_sample.detach().abs().cpu().numpy()
+        self.memory.update_priorities(indices, errors)
 
-        # Update target network periodically
-        if self.steps_done % 100 == 0:
+        self.epsilon = max(EPSILON_END, self.epsilon * EPSILON_DECAY)
+        if self.steps_done % 1000 == 0:
             self.target_net.load_state_dict(self.policy_net.state_dict())
 
         self.steps_done += 1
 
 
-# Training Setup
+# Training Setup moving to "GPU"
 agent = DQNAgent()
 agent.policy_net.to(device)
 agent.target_net.to(device)
@@ -179,8 +532,9 @@ scores = []
 mean_scores = []
 best_mean_score = float('-inf')
 
+# TODO: Change the file name
 # Model Loading
-WEIGHT_PATH = 'Rainbow_weights/snake_dqn.pth'
+WEIGHT_PATH = 'RAINBOW WEIGHTS/snake_dqn.pth'
 RETRAIN = True
 if os.path.exists(WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
@@ -209,7 +563,7 @@ for episode in range(5000):
         action = agent.act(current_state)
         next_state, reward, done = game.step(action)
         # reward = reward.to(device)
-        next_state_processed = agent.get_state(next_state).to(device)
+        next_state_processed = agent.get_state(next_state).to(device)  # get the processed state and move to GPU
 
         # Store experience with negative reward for collisions
         agent.remember(current_state, action, reward, next_state_processed, done)
@@ -221,7 +575,7 @@ for episode in range(5000):
         # Rendering
         game.render(screen, clock.get_fps())
         pygame.display.flip()
-        clock.tick(240)  # Reduce speed for better observation
+        clock.tick(120)  # Reduce speed for better observation
 
     # Episode statistics
     scores.append(total_reward)
