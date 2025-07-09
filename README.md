@@ -11,7 +11,7 @@ The **Snake Game** is a simple implementation of the Snake game using the **Pyga
 - **Pygame implementation**: The core mechanics of the snake game are implemented using Pygame of which i had to learn in a short period, so it is not perfect 
 - **Reinforcement Learning (RL)**: The snake learns to navigate the grid using both **Q-learning** and **Deep Q-Networks (DQN)**.
 - **DQN Optimisation**: After extensive training using Q-learning (16+ hours with minimal progress), the agent has been switched to a DQN model for better performance.
-- **Backup Path Strategy**: The snake is designed to follow a **saved path** when no optimal policy is available, ensuring safe movement in complex situations.
+- **Backup Path Strategy**: The snake is designed to use **saved weights** from previous trainings.
 - The saved paths are inside some specifically named files, e.g "old_q_table_files", "weight_file_for_DQN"..............
 
 ## Project Structure
@@ -51,6 +51,7 @@ After recognising the limitations of traditional Q-learning, I decided to use **
 ## Current Status
 
 - The snake is currently being trained using **DQN** and is gradually improving.
+- I am currently trying to implement the Rainbow Algorithm to see if i can get any improvement from using DQN. 
 - I am going to research the Hamiltonian cycle strategy to implement as a fallback to prevent the snake from getting stuck in complex situations it was invented by <a href="https://openstax.org/books/contemporary-mathematics/pages/12-7-hamilton-cycles#:~:text=In%201857%2C%20a%20mathematician%20named,visited%20every%20vertex%20exactly%20once.">William Hamilton</a>
 	- I got this idea from <a href="https://www.youtube.com/watch?v=tjQIO1rqTBE">this youtube video</a> but the method was gotten from <a href="https://johnflux.com/page/2/">John Tapsell</a>
 - The game mechanics are complete, but there are still optimisations to be made, especially around the DQN model and its convergence.
