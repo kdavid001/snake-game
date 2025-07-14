@@ -11,6 +11,7 @@ font = pygame.font.SysFont('Arial', 30)
 screen = pygame.display.set_mode((800, 600))
 import math
 
+
 class SnakeGame:
     def __init__(self, width=800, height=600):
         self.width = width
@@ -78,8 +79,8 @@ class SnakeGame:
 
         # Check collisions
         if (head.left < 0 or head.right > self.width or
-            head.top < 0 or head.bottom > self.height or
-            any(head.colliderect(seg) for seg in self.snake.body[3:])):
+                head.top < 0 or head.bottom > self.height or
+                any(head.colliderect(seg) for seg in self.snake.body[3:])):
             self.done = True
             # self.reset()
             reward = -50
