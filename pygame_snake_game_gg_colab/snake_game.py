@@ -11,7 +11,6 @@ font = pygame.font.SysFont('Arial', 30)
 screen = pygame.display.set_mode((800, 600))
 import math
 
-
 class SnakeGame:
     def __init__(self, width=800, height=600):
         self.width = width
@@ -79,8 +78,8 @@ class SnakeGame:
 
         # Check collisions
         if (head.left < 0 or head.right > self.width or
-                head.top < 0 or head.bottom > self.height or
-                any(head.colliderect(seg) for seg in self.snake.body[3:])):
+            head.top < 0 or head.bottom > self.height or
+            any(head.colliderect(seg) for seg in self.snake.body[3:])):
             self.done = True
             # self.reset()
             reward = -50
@@ -105,6 +104,19 @@ class SnakeGame:
         self.snake.draw(screen)
         self.scoreboard.update(screen, fps)
 
+    # def get_state(self):
+    #     head = self.snake.body[0]
+    #     food = self.food.rect
+    #     return {
+    #         "snake_head": (head.x, head.y),
+    #         "snake_body": [(seg.x, seg.y) for seg in self.snake.body],
+    #         "food": (food.x, food.y),
+    #
+    #         "score": self.scoreboard.get_score(),
+    #         "highscore": self.scoreboard.get_high_score()
+    #     }
+
+
     def get_state(self):
         head = self.snake.body[0]
         food = self.food.rect
@@ -112,6 +124,7 @@ class SnakeGame:
             "snake_head": (head.x, head.y),
             "snake_body": [(seg.x, seg.y) for seg in self.snake.body],
             "food": (food.x, food.y),
+            "direction": self.snake.direction,
             "score": self.scoreboard.get_score(),
             "highscore": self.scoreboard.get_high_score()
         }

@@ -18,7 +18,8 @@ GRID_WIDTH = WIDTH // BLOCK_SIZE
 GRID_HEIGHT = HEIGHT // BLOCK_SIZE
 
 # Neural Network Parameters
-STATE_SIZE = 4  # grid_x, grid_y, food_dir, danger_level
+# STATE_SIZE = 4  # grid_x, grid_y, food_dir, danger_level
+STATE_SIZE = 14
 BATCH_SIZE = 128
 MEMORY_SIZE = 10000
 GAMMA = 0.95
@@ -36,16 +37,16 @@ device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # csv save function
-def save_weights_to_csv(state_dict, path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        for key, weight in state_dict.items():
-            writer.writerow([key])
-            flat_weights = weight.flatten().tolist()
-            writer.writerow(flat_weights)
-            writer.writerow([])
-    print(f"Weights saved to {path}")
+# def save_weights_to_csv(state_dict, path):
+#     os.makedirs(os.path.dirname(path), exist_ok=True)
+#     with open(path, mode='w', newline='') as file:
+#         writer = csv.writer(file)
+#         for key, weight in state_dict.items():
+#             writer.writerow([key])
+#             flat_weights = weight.flatten().tolist()
+#             writer.writerow(flat_weights)
+#             writer.writerow([])
+#     print(f"Weights saved to {path}")
 
 
 class DQN(nn.Module):
@@ -55,11 +56,11 @@ class DQN(nn.Module):
         super(DQN, self).__init__()
         # Feed-forward
         self.fc = nn.Sequential(
-            nn.Linear(input_size, 128),
+            nn.Linear(input_size, 256),
             nn.ReLU(),
-            nn.Linear(128, 128),
+            nn.Linear(256, 256),
             nn.ReLU(),
-            nn.Linear(128, output_size)
+            nn.Linear(256, output_size)
         )
 
     def forward(self, x):
@@ -70,8 +71,10 @@ class DQN(nn.Module):
 class DQNAgent:
     def __init__(self):
         # Policy Network
-        self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
-        self.target_net = DQN(STATE_SIZE, 4)  # Target_network
+        # self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
+        # self.target_net = DQN(STATE_SIZE, 4)  # Target_network
+        self.policy_net = DQN(14, 4)  # 14 input features now
+        self.target_net = DQN(14, 4)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.memory = deque(maxlen=MEMORY_SIZE)
         self.epsilon = EPSILON_START
@@ -81,41 +84,98 @@ class DQNAgent:
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
 
+    # def get_state(self, game_state):
+    #     """state representation with full danger detection"""
+    #     head = game_state['snake_head']
+    #     food = game_state['food']
+    #     body = game_state['snake_body']
+    #
+    #     # Normalized grid position
+    #     grid_x = head[0] // BLOCK_SIZE
+    #     grid_y = head[1] // BLOCK_SIZE
+    #
+    #     # Food direction (0-3: up, right, down, left)
+    #     dx, dy = food[0] - head[0], food[1] - head[1]
+    #     food_dir = (1 if dx > 0 else 3) if abs(dx) > abs(dy) else (2 if dy > 0 else 0)
+    #
+    #     # Danger detection in all 4 directions
+    #     danger = 0
+    #     # Check left, right, up, down
+    #     for x, y in [
+    #         (head[0] - BLOCK_SIZE, head[1]),  # Left
+    #         (head[0] + BLOCK_SIZE, head[1]),  # Right
+    #         (head[0], head[1] - BLOCK_SIZE),  # Up
+    #         (head[0], head[1] + BLOCK_SIZE)  # Down
+    #     ]:
+    #         if (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT) or ((x, y) in body):
+    #             danger += 1
+    #
+    #     # Normalized danger level (0-1.0)
+    #     danger_level = danger / 4
+    #
+    #     return torch.FloatTensor([
+    #         grid_x / GRID_WIDTH,
+    #         grid_y / GRID_HEIGHT,
+    #         food_dir / 3,
+    #         danger_level
+    #     ])
+
     def get_state(self, game_state):
-        """state representation with full danger detection"""
         head = game_state['snake_head']
         food = game_state['food']
         body = game_state['snake_body']
+        direction = game_state['direction']  # Assume direction is a tuple like (dx, dy)
 
-        # Normalized grid position
-        grid_x = head[0] // BLOCK_SIZE
-        grid_y = head[1] // BLOCK_SIZE
+        # Normalized head position
+        grid_x = head[0] / WIDTH
+        grid_y = head[1] / HEIGHT
 
-        # Food direction (0-3: up, right, down, left)
-        dx, dy = food[0] - head[0], food[1] - head[1]
-        food_dir = (1 if dx > 0 else 3) if abs(dx) > abs(dy) else (2 if dy > 0 else 0)
+        # Relative food direction (normalized)
+        dx = (food[0] - head[0]) / WIDTH
+        dy = (food[1] - head[1]) / HEIGHT
 
-        # Danger detection in all 4 directions
-        danger = 0
-        # Check left, right, up, down
-        for x, y in [
-            (head[0] - BLOCK_SIZE, head[1]),  # Left
-            (head[0] + BLOCK_SIZE, head[1]),  # Right
-            (head[0], head[1] - BLOCK_SIZE),  # Up
-            (head[0], head[1] + BLOCK_SIZE)  # Down
-        ]:
-            if (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT) or ((x, y) in body):
-                danger += 1
+        # Snake direction (one-hot encoded)
+        dir_up = 1 if direction == (0, -BLOCK_SIZE) else 0
+        dir_right = 1 if direction == (BLOCK_SIZE, 0) else 0
+        dir_down = 1 if direction == (0, BLOCK_SIZE) else 0
+        dir_left = 1 if direction == (-BLOCK_SIZE, 0) else 0
 
-        # Normalized danger level (0-1.0)
-        danger_level = danger / 4
+        # Danger detection (binary)
+        def is_danger(pos):
+            x, y = pos
+            return (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT or (x, y) in body)
 
-        return torch.FloatTensor([
-            grid_x / GRID_WIDTH,
-            grid_y / GRID_HEIGHT,
-            food_dir / 3,
-            danger_level
-        ])
+        left = (head[0] - BLOCK_SIZE, head[1])
+        right = (head[0] + BLOCK_SIZE, head[1])
+        up = (head[0], head[1] - BLOCK_SIZE)
+        down = (head[0], head[1] + BLOCK_SIZE)
+
+        danger_left = int(is_danger(left))
+        danger_right = int(is_danger(right))
+        danger_up = int(is_danger(up))
+        danger_down = int(is_danger(down))
+
+        # Snake length normalized
+        max_possible_length = (GRID_WIDTH * GRID_HEIGHT) - 1
+        snake_length = len(body) / max_possible_length
+
+        # Build enriched state vector
+        state = [
+            grid_x, grid_y,  # normalized head position
+            dx, dy,  # relative food position
+            danger_left,
+            danger_right,
+            danger_up,
+            danger_down,
+            dir_up,
+            dir_right,
+            dir_down,
+            dir_left,
+            snake_length,
+            1.0# normalized snake length
+        ]
+
+        return torch.FloatTensor(state)
 
     def remember(self, state, action, reward, next_state, done):
         self.memory.append((state, action, reward, next_state, done))
@@ -179,23 +239,27 @@ agent.policy_net.to(device)
 agent.target_net.to(device)
 scores = []
 mean_scores = []
+episodes = []
 best_mean_score = float('-inf')
+current_score = game.get_state()["score"]
+high_score = game.get_state()["highscore"]
 
 # TODO: Change the file name
 # Model Loading
-WEIGHT_PATH = 'Current DQN WEIGHTS/snake_dqn.pth'
+# WEIGHT_PATH = 'Current DQN WEIGHTS/snake_dqn.pth'
+NEW_WEIGHT_PATH = "Current DQN WEIGHTS/new_dqn_weights.pth"
 RETRAIN = True
-if os.path.exists(WEIGHT_PATH):
+if os.path.exists(NEW_WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
     # updates overtime.
     # agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH), weights_only = True)
     agent.epsilon = 0.2 if RETRAIN else EPSILON_END
-    agent.policy_net.load_state_dict(torch.load(WEIGHT_PATH))
+    agent.policy_net.load_state_dict(torch.load(NEW_WEIGHT_PATH))
     agent.target_net.load_state_dict(agent.policy_net.state_dict())
     print("Loaded saved weights")
 
 # Training Loop
-for episode in range(5000):
+for episode in range(3000):
     state = game.reset()
     current_state = agent.get_state(state).to(device)
     total_reward = 0
@@ -230,18 +294,29 @@ for episode in range(5000):
     scores.append(total_reward)
     mean_score = np.mean(scores[-100:])
     mean_scores.append(mean_score)
+    episodes.append(episode)
 
     # Save best model
     if mean_score > best_mean_score:
         best_mean_score = mean_score
-        torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
+        torch.save(agent.policy_net.state_dict(), NEW_WEIGHT_PATH)
         print("Saved new weights")
 
     # Save weights to CSV every 500 episodes
     # if episode % 500 == 0 and episode != 0:
-    #     save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
+    #     from matplotlib import pyplot as plt
+    #     plt.figure(figsize=(12, 6))
+    #     plt.plot(episodes, scores, label="Raw Score per Episode", alpha=0.4)
+    #     plt.plot(episodes, mean_scores, label="Mean Score (last 100)", linewidth=2)
+    #     plt.title("DQN Training Progress")
+    #     plt.xlabel("Episode")
+    #     plt.ylabel("Score")
+    #     plt.legend()
+    #     plt.grid(True)
+    #     plt.show()
 
-    print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f}")
+    print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f} | "
+          f"highscore : {high_score} | current_score: {current_score}")
 
 # Final Save at the 5000 episode
 # torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
@@ -251,3 +326,4 @@ for episode in range(5000):
 # save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
 # print("Saved weights to scv file")
 pygame.quit()
+

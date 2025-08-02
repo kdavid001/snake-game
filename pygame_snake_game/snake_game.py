@@ -111,6 +111,7 @@ class SnakeGame:
             "snake_head": (head.x, head.y),
             "snake_body": [(seg.x, seg.y) for seg in self.snake.body],
             "food": (food.x, food.y),
+            "direction": self.snake.direction,
             "score": self.scoreboard.get_score(),
             "highscore": self.scoreboard.get_high_score()
         }
