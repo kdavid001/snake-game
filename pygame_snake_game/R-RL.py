@@ -13,6 +13,8 @@ import torch.optim as optim
 from snake_game import SnakeGame
 from collections import deque
 
+import cv2
+
 # Game Constants
 WIDTH, HEIGHT = 800, 600
 BLOCK_SIZE = 20
@@ -21,6 +23,7 @@ GRID_HEIGHT = HEIGHT // BLOCK_SIZE
 
 # Neural Network Parameters
 STATE_SIZE = 14
+output_size = 4
 BATCH_SIZE = 128
 MEMORY_SIZE = 10000
 GAMMA = 0.95
@@ -37,7 +40,8 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 # screen = pygame.Surface((WIDTH, HEIGHT))  # Off-screen rendering
 clock = pygame.time.Clock()
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
 
 
@@ -187,25 +191,35 @@ class NoisyLinear(nn.Module):
 #         probs = F.softmax(logits, dim=2)  # Distribution over atoms
 #         return probs
 
-class DQN(nn.Module):
-    def __init__(self, input_size, output_size):
-        super(DQN, self).__init__()
-
-        self.model = nn.Sequential(
-            NoisyLinear(input_size, 256),
+class CNN_DQN(nn.Module):
+    def __init__(self, num_actions):
+        super(CNN_DQN, self).__init__()
+        self.conv = nn.Sequential(
+            nn.Conv2d(4, 32, kernel_size=8, stride=4),  # input: 4 x 84 x 84
             nn.ReLU(),
-            NoisyLinear(256, 256),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
             nn.ReLU(),
-            NoisyLinear(256, output_size)
+            nn.Conv2d(64, 64, kernel_size=3, stride=1),
+            nn.ReLU()
+        )
+        self.feature_size = self._get_conv_output((4, 84, 84))  # pass input shape
+        self.fc = nn.Sequential(
+            NoisyLinear(self.feature_size, 512),
+            nn.ReLU(),
+            NoisyLinear(512, num_actions)
         )
 
     def forward(self, x):
-        return self.model(x)
+        print(f"Input to CNN: {x.shape}")  # Add this line
+        x = self.conv(x)
+        print(f"After CNN: {x.shape}")  # Add this line
+        x = x.view(x.size(0), -1)
+        return self.fc(x)
 
-    def reset_noise(self):
-        for layer in self.model:
-            if hasattr(layer, 'reset_noise'):
-                layer.reset_noise()
+    def _get_conv_output(self, shape):
+        o = torch.zeros(1, *shape)
+        o = self.conv(o)
+        return int(np.prod(o.size()))
 
 
 # TODO: Implement a PrioritizedReplayBuffer
@@ -308,11 +322,13 @@ class PrioritizedReplayBuffer:
 
 
 # DQN AGENT
+from collections import deque
 class DQNAgent:
     def __init__(self):
         # Policy Network
-        self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
-        self.target_net = DQN(STATE_SIZE, 4)  # Target_network
+        self.frame_stack = deque(maxlen=4)
+        self.policy_net = CNN_DQN(output_size).to(device)
+        self.target_net = CNN_DQN(output_size).to(device)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.memory = PrioritizedReplayBuffer(MEMORY_SIZE)
         self.epsilon = EPSILON_START
@@ -330,64 +346,94 @@ class DQNAgent:
         self.N_STEP = 3  # You can tune this
         self.n_step_buffer = deque(maxlen=self.N_STEP)
 
-    def get_state(self, game_state):
-        head = game_state['snake_head']
-        food = game_state['food']
-        body = game_state['snake_body']
-        direction = game_state['direction']  # Assume direction is a tuple like (dx, dy)
+    def stack_frames(self, new_frame):
+        # Ensure frame is [1, 84, 84]
+        if new_frame.ndim == 2:
+            new_frame = new_frame.unsqueeze(0)
 
-        # Normalized head position
-        grid_x = head[0] / WIDTH
-        grid_y = head[1] / HEIGHT
+        new_frame = new_frame.to(device)
 
-        # Relative food direction (normalized)
-        dx = (food[0] - head[0]) / WIDTH
-        dy = (food[1] - head[1]) / HEIGHT
+        if len(self.frame_stack) < 4:
+            for _ in range(4):
+                self.frame_stack.append(new_frame)
+        else:
+            self.frame_stack.append(new_frame)
 
-        # Snake direction (one-hot encoded)
-        dir_up = 1 if direction == (0, -BLOCK_SIZE) else 0
-        dir_right = 1 if direction == (BLOCK_SIZE, 0) else 0
-        dir_down = 1 if direction == (0, BLOCK_SIZE) else 0
-        dir_left = 1 if direction == (-BLOCK_SIZE, 0) else 0
+        # Stack frames along dim=0 (channels)
+        stacked = torch.cat(list(self.frame_stack), dim=0)
+        # print(f"stacked shape{stacked.shape}")# [4, 84, 84]
+        return stacked
 
-        # Danger detection (binary)
-        def is_danger(pos):
-            x, y = pos
-            return (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT or (x, y) in body)
 
-        left = (head[0] - BLOCK_SIZE, head[1])
-        right = (head[0] + BLOCK_SIZE, head[1])
-        up = (head[0], head[1] - BLOCK_SIZE)
-        down = (head[0], head[1] + BLOCK_SIZE)
+    # def get_state(self, game_state):
+    #     head = game_state['snake_head']
+    #     food = game_state['food']
+    #     body = game_state['snake_body']
+    #     direction = game_state['direction']  # Assume direction is a tuple like (dx, dy)
+    #
+    #     # Normalized head position
+    #     grid_x = head[0] / WIDTH
+    #     grid_y = head[1] / HEIGHT
+    #
+    #     # Relative food direction (normalized)
+    #     dx = (food[0] - head[0]) / WIDTH
+    #     dy = (food[1] - head[1]) / HEIGHT
+    #
+    #     # Snake direction (one-hot encoded)
+    #     dir_up = 1 if direction == (0, -BLOCK_SIZE) else 0
+    #     dir_right = 1 if direction == (BLOCK_SIZE, 0) else 0
+    #     dir_down = 1 if direction == (0, BLOCK_SIZE) else 0
+    #     dir_left = 1 if direction == (-BLOCK_SIZE, 0) else 0
+    #
+    #     # Danger detection (binary)
+    #     def is_danger(pos):
+    #         x, y = pos
+    #         return (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT or (x, y) in body)
+    #
+    #     left = (head[0] - BLOCK_SIZE, head[1])
+    #     right = (head[0] + BLOCK_SIZE, head[1])
+    #     up = (head[0], head[1] - BLOCK_SIZE)
+    #     down = (head[0], head[1] + BLOCK_SIZE)
+    #
+    #     danger_left = int(is_danger(left))
+    #     danger_right = int(is_danger(right))
+    #     danger_up = int(is_danger(up))
+    #     danger_down = int(is_danger(down))
+    #
+    #     # Snake length normalized
+    #     max_possible_length = (GRID_WIDTH * GRID_HEIGHT) - 1
+    #     snake_length = len(body) / max_possible_length
+    #
+    #     # Build enriched state vector
+    #     state = [
+    #         grid_x, grid_y,  # normalized head position
+    #         dx, dy,  # relative food position
+    #         danger_left,
+    #         danger_right,
+    #         danger_up,
+    #         danger_down,
+    #         dir_up,
+    #         dir_right,
+    #         dir_down,
+    #         dir_left,
+    #         snake_length,
+    #         1.0  # normalized snake length
+    #     ]
+    #
+    #     return torch.FloatTensor(state)
+    #
+    #     # I modified this to accumulate the multistep return experience
+    def get_state(self):
+        surface = pygame.display.get_surface()
+        raw_frame = pygame.surfarray.array3d(surface)  # shape: (W, H, 3)
 
-        danger_left = int(is_danger(left))
-        danger_right = int(is_danger(right))
-        danger_up = int(is_danger(up))
-        danger_down = int(is_danger(down))
+        # Convert to grayscale and resize
+        gray = cv2.cvtColor(raw_frame, cv2.COLOR_RGB2GRAY)  # shape: (H, W)
+        resized = cv2.resize(gray, (84, 84))  # shape: (84, 84)
+        normalized = resized / 255.0  # normalize
+        tensor = torch.tensor(normalized, dtype=torch.float32)  # shape: (84, 84)
+        return tensor
 
-        # Snake length normalized
-        max_possible_length = (GRID_WIDTH * GRID_HEIGHT) - 1
-        snake_length = len(body) / max_possible_length
-
-        # Build enriched state vector
-        state = [
-            grid_x, grid_y,  # normalized head position
-            dx, dy,  # relative food position
-            danger_left,
-            danger_right,
-            danger_up,
-            danger_down,
-            dir_up,
-            dir_right,
-            dir_down,
-            dir_left,
-            snake_length,
-            1.0  # normalized snake length
-        ]
-
-        return torch.FloatTensor(state)
-
-        # I modified this to accumulate the multistep return experience
 
     def remember(self, state, action, reward, next_state, done):
         # Convert to CPU tensors for storage
@@ -421,7 +467,8 @@ class DQNAgent:
     #     with torch.no_grad():
     #         q_values = self.policy_net(state)
     #         return q_values.argmax().item()
-    #
+
+
     def act(self, state):
         """This is for the Dueling DQN"""
         if random.random() < self.epsilon:
@@ -500,7 +547,6 @@ class DQNAgent:
 
         # Convert to tensors and move to GPU
         states = torch.stack(states).to(device)
-        actions = torch.LongTensor(actions).to(device)
         rewards = torch.FloatTensor(rewards).to(device)
         next_states = torch.stack(next_states).to(device)
         dones = torch.FloatTensor(dones).to(device)
@@ -668,7 +714,7 @@ best_mean_score = float('-inf')
 
 # TODO: Change the file name
 # Model Loading
-WEIGHT_PATH = 'RAINBOW WEIGHTS/new_snake_weight_dqn.pth'
+WEIGHT_PATH = 'RAINBOW WEIGHTS/CNN_weights_For_RW.pth'
 RETRAIN = True
 if os.path.exists(WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
@@ -681,11 +727,14 @@ if os.path.exists(WEIGHT_PATH):
 
 # Training Loop
 for episode in range(5000):
+    frame = agent.get_state()
+    current_state = agent.stack_frames(frame).unsqueeze(0).to(device)
+    print("Current state shape:", current_state.shape)
     current_score = game.get_state()["score"]
     high_score = game.get_state()["highscore"]
     state = game.reset()
-    current_state = agent.get_state(state).to(device)
     total_reward = 0
+    # state.shape = [BATCH_SIZE, 4, 84, 84]
     done = False
 
     while not done:
@@ -699,9 +748,8 @@ for episode in range(5000):
         action = agent.act(current_state)
         next_state, reward, done = game.step(action)
         # reward = reward.to(device)
-        next_state_processed = agent.get_state(next_state).to(device)  # get the processed state and move to GPU
-
-        # Store experience with negative reward for collisions
+        next_state_processed = agent.get_state().to(device)  # get the processed state and move to GPU
+        next_state_processed = agent.stack_frames(next_state_processed).unsqueeze(0).to(device)        # Store experience with negative reward for collisions
         agent.remember(current_state, action, reward, next_state_processed, done)
         agent.learn()
 

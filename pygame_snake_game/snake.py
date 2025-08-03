@@ -55,3 +55,4 @@ class Snake:
     def draw(self, surface):
         for segment in self.body:
             pygame.draw.rect(surface, self.color, segment)
+

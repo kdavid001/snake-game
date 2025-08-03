@@ -36,6 +36,7 @@ clock = pygame.time.Clock()
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
 
+
 # csv save function
 # def save_weights_to_csv(state_dict, path):
 #     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -65,7 +66,6 @@ class DQN(nn.Module):
 
     def forward(self, x):
         return self.fc(x)
-
 
 
 class DQNAgent:
@@ -172,7 +172,7 @@ class DQNAgent:
             dir_down,
             dir_left,
             snake_length,
-            1.0# normalized snake length
+            1.0  # normalized snake length
         ]
 
         return torch.FloatTensor(state)
@@ -258,72 +258,79 @@ if os.path.exists(NEW_WEIGHT_PATH):
     agent.target_net.load_state_dict(agent.policy_net.state_dict())
     print("Loaded saved weights")
 
+
 # Training Loop
-for episode in range(3000):
-    state = game.reset()
-    current_state = agent.get_state(state).to(device)
-    total_reward = 0
-    done = False
+def train_model():
+    global best_mean_score
+    for episode in range(3000):
+        state = game.reset()
+        current_state = agent.get_state(state).to(device)
+        total_reward = 0
+        done = False
 
-    while not done:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                # torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
-                # print("Saved weights in .pth")
-                pygame.quit()
-                sys.exit()
+        while not done:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    # torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
+                    # print("Saved weights in .pth")
+                    pygame.quit()
+                    sys.exit()
 
-        action = agent.act(current_state)
-        next_state, reward, done = game.step(action)
-        # reward = reward.to(device)
-        next_state_processed = agent.get_state(next_state).to(device) # get the processed state and move to GPU
+            action = agent.act(current_state)
+            next_state, reward, done = game.step(action)
+            # reward = reward.to(device)
+            next_state_processed = agent.get_state(next_state).to(device)  # get the processed state and move to GPU
 
-        # Store experience with negative reward for collisions
-        agent.remember(current_state, action, reward, next_state_processed, done)
-        agent.learn()
+            # Store experience with negative reward for collisions
+            agent.remember(current_state, action, reward, next_state_processed, done)
+            agent.learn()
 
-        current_state = next_state_processed
-        total_reward += reward
+            current_state = next_state_processed
+            total_reward += reward
 
-        # Rendering
-        game.render(screen, clock.get_fps())
-        pygame.display.flip()
-        clock.tick(240)  # Reduce speed for better observation
+            # Rendering
+            game.render(screen, clock.get_fps())
+            pygame.display.flip()
+            clock.tick(240)  # Reduce speed for better observation
 
-    # Episode statistics
-    scores.append(total_reward)
-    mean_score = np.mean(scores[-100:])
-    mean_scores.append(mean_score)
-    episodes.append(episode)
+        # Episode statistics
+        scores.append(total_reward)
+        mean_score = np.mean(scores[-100:])
+        mean_scores.append(mean_score)
+        episodes.append(episode)
 
-    # Save best model
-    if mean_score > best_mean_score:
-        best_mean_score = mean_score
-        torch.save(agent.policy_net.state_dict(), NEW_WEIGHT_PATH)
-        print("Saved new weights")
+        # Save best model
+        if mean_score > best_mean_score:
+            best_mean_score = mean_score
+            torch.save(agent.policy_net.state_dict(), NEW_WEIGHT_PATH)
+            print("Saved new weights")
 
-    # Save weights to CSV every 500 episodes
-    # if episode % 500 == 0 and episode != 0:
-    #     from matplotlib import pyplot as plt
-    #     plt.figure(figsize=(12, 6))
-    #     plt.plot(episodes, scores, label="Raw Score per Episode", alpha=0.4)
-    #     plt.plot(episodes, mean_scores, label="Mean Score (last 100)", linewidth=2)
-    #     plt.title("DQN Training Progress")
-    #     plt.xlabel("Episode")
-    #     plt.ylabel("Score")
-    #     plt.legend()
-    #     plt.grid(True)
-    #     plt.show()
+        # Save weights to CSV every 500 episodes
+        # if episode % 500 == 0 and episode != 0:
+        #     from matplotlib import pyplot as plt
+        #     plt.figure(figsize=(12, 6))
+        #     plt.plot(episodes, scores, label="Raw Score per Episode", alpha=0.4)
+        #     plt.plot(episodes, mean_scores, label="Mean Score (last 100)", linewidth=2)
+        #     plt.title("DQN Training Progress")
+        #     plt.xlabel("Episode")
+        #     plt.ylabel("Score")
+        #     plt.legend()
+        #     plt.grid(True)
+        #     plt.show()
 
-    print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f} | "
-          f"highscore : {high_score} | current_score: {current_score}")
+        print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f} | "
+              f"highscore : {high_score} | current_score: {current_score}")
 
-# Final Save at the 5000 episode
-# torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
+    # Final Save at the 5000 episode
+    # torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
 
-# Note Csv files of the weights are large
-# Save to CSV
-# save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
-# print("Saved weights to scv file")
-pygame.quit()
+    # Note Csv files of the weights are large
+    # Save to CSV
+    # save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
+    # print("Saved weights to scv file")
+    pygame.quit()
 
+
+if __name__ == '__main__':
+    train_model()
+    pygame.quit()
