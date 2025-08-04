@@ -33,8 +33,8 @@ def play_game():
         GRID_WIDTH = game.width // BLOCK_SIZE
         GRID_HEIGHT = game.height // BLOCK_SIZE
         ham_cycle = generate_hamiltonian_cycle(GRID_WIDTH, GRID_HEIGHT)
-        print("Cycle length:", len(ham_cycle))
-        print("Expected length:", GRID_WIDTH * GRID_HEIGHT)
+        # print("Cycle length:", len(ham_cycle))
+        # print("Expected length:", GRID_WIDTH * GRID_HEIGHT)
         # print(type(ham_cycle))
         # if ham_cycle:
         #     print("Ham Cycle Exist")
@@ -45,7 +45,8 @@ def play_game():
             idx = ham_cycle.index(snake_head_pos)
             ham_cycle = ham_cycle[idx:] + ham_cycle[:idx]
         else:
-            print("Snake head not in Hamiltonian cycle! This will cause fallback issues.")
+            pass
+            # print("Snake head not in Hamiltonian cycle! This will cause fallback issues.")
         current_state = agent.get_state(state).to(device)
         done = False
         Total_reward = 0
@@ -63,14 +64,11 @@ def play_game():
                     sys.exit()  # Quit immediately if window is closed
 
             snake_head_pos = (game.snake.body[0].x // BLOCK_SIZE,game.snake.body[0].y // BLOCK_SIZE)
-            if should_fallback(game.snake, game):
-                action = get_cycle_action(snake_head_pos, ham_cycle, GRID_WIDTH, GRID_HEIGHT)
-            else:
-                action = agent.act(current_state)
-            if action is None:
-                print(f"[ERROR] No valid action for head at {snake_head_pos}")
-                pygame.quit()
-                sys.exit()
+            # if should_fallback(game.snake, game):
+            #     action = get_cycle_action(snake_head_pos, ham_cycle, GRID_WIDTH, GRID_HEIGHT)
+            # else:
+            action = agent.act(current_state)
+            print(f"Checking if action is a tuple or a list : {type(action), action}")
             next_state, reward, done = game.step(action)
             current_state = agent.get_state(next_state).to(device)
             Total_reward += reward
