@@ -3,11 +3,11 @@ import torch
 import pygame
 import sys
 from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
-from Hamiltonian_cycle import generate_hamiltonian_cycle, get_cycle_action
+# from Hamiltonian_cycle import generate_hamiltonian_cycle, get_cycle_action
 
 # Setup
 agent = DQNAgent()
-agent.policy_net.load_state_dict(torch.load("Current DQN WEIGHTS/new_dqn_weights.pth"))
+agent.policy_net.load_state_dict(torch.load("Current DQN WEIGHTS/dqn_weights.pth"))
 agent.policy_net.to(device)
 agent.policy_net.eval()
 agent.epsilon = 0.0  # Greedy play
@@ -38,7 +38,7 @@ def play_game():
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
-                    sys.exit()  # Quit immediately if window is closed
+                    sys.exit()
             # snake_head_pos = (
             #     game.snake.body[0].x // BLOCK_SIZE,
             #     game.snake.body[0].y // BLOCK_SIZE

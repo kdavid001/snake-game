@@ -247,7 +247,7 @@ high_score = game.get_state()["highscore"]
 # TODO: Change the file name
 # Model Loading
 # WEIGHT_PATH = 'Current DQN WEIGHTS/snake_dqn.pth'
-NEW_WEIGHT_PATH = "Current DQN WEIGHTS/new_dqn_weights.pth"
+NEW_WEIGHT_PATH = "Current DQN WEIGHTS/dqn_weights.pth"
 RETRAIN = True
 if os.path.exists(NEW_WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the

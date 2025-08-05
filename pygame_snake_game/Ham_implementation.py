@@ -3,7 +3,7 @@ import torch
 import pygame
 import sys
 from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
-from Hamiltonian_cycle import generate_hamiltonian_cycle, get_cycle_action
+from Hamiltonian_cycle import get_cycle_action, generate_random_hamiltonian
 
 # Setup
 agent = DQNAgent()
@@ -32,12 +32,9 @@ def play_game():
         print(game.width, game.height)
         GRID_WIDTH = game.width // BLOCK_SIZE
         GRID_HEIGHT = game.height // BLOCK_SIZE
-        ham_cycle = generate_hamiltonian_cycle(GRID_WIDTH, GRID_HEIGHT)
-        # print("Cycle length:", len(ham_cycle))
-        # print("Expected length:", GRID_WIDTH * GRID_HEIGHT)
-        # print(type(ham_cycle))
-        # if ham_cycle:
-        #     print("Ham Cycle Exist")
+        print(GRID_WIDTH, GRID_HEIGHT)
+        ham_cycle = generate_random_hamiltonian(GRID_WIDTH, GRID_HEIGHT)
+
         state = game.reset()
         # Align Hamiltonian cycle to snake's head position
         snake_head_pos = (game.snake.body[0].x // BLOCK_SIZE, game.snake.body[0].y // BLOCK_SIZE)
@@ -64,10 +61,10 @@ def play_game():
                     sys.exit()  # Quit immediately if window is closed
 
             snake_head_pos = (game.snake.body[0].x // BLOCK_SIZE,game.snake.body[0].y // BLOCK_SIZE)
-            # if should_fallback(game.snake, game):
-            #     action = get_cycle_action(snake_head_pos, ham_cycle, GRID_WIDTH, GRID_HEIGHT)
-            # else:
-            action = agent.act(current_state)
+            if should_fallback(game.snake, game):
+                action = get_cycle_action(snake_head_pos, ham_cycle)
+            else:
+                action = agent.act(current_state)
             print(f"Checking if action is a tuple or a list : {type(action), action}")
             next_state, reward, done = game.step(action)
             current_state = agent.get_state(next_state).to(device)

@@ -39,7 +39,7 @@ while True:
                 # Reset game state
                 food = Food(width, height)
                 scoreboard.reset()
-                snake = Snake(20, ((20, 20)))
+                snake = Snake(20, (20, 20))
                 game_active = True
                 game_over = False
 
