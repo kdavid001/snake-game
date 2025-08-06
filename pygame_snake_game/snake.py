@@ -20,12 +20,41 @@ class Snake:
             pygame.Rect(x - 2 * block_size, y, block_size, block_size)
         ]
 
+    # def move(self, dt):
+    #     self.accumulated_time += dt
+    #     while self.accumulated_time >= self.time_per_step:
+    #         self.accumulated_time -= self.time_per_step
+    #         # Create new head based on direction
+    #         head = self.body[0].copy()
+    #         if self.direction == "up":
+    #             head.y -= self.block_size
+    #         elif self.direction == "down":
+    #             head.y += self.block_size
+    #         elif self.direction == "left":
+    #             head.x -= self.block_size
+    #         elif self.direction == "right":
+    #             head.x += self.block_size
+    #
+    #         # Update snake body
+    #         self.body.insert(0, head)
+    #         if not self.grow:
+    #             self.body.pop()
+    #         else:
+    #             self.grow = False
+
     def move(self, dt):
         self.accumulated_time += dt
         while self.accumulated_time >= self.time_per_step:
             self.accumulated_time -= self.time_per_step
-            # Create new head based on direction
+
+            # Get the current head
             head = self.body[0].copy()
+
+            # Align to grid to avoid drift
+            head.x = (head.x // self.block_size) * self.block_size
+            head.y = (head.y // self.block_size) * self.block_size
+
+            # Move in the current direction
             if self.direction == "up":
                 head.y -= self.block_size
             elif self.direction == "down":
@@ -35,8 +64,10 @@ class Snake:
             elif self.direction == "right":
                 head.x += self.block_size
 
-            # Update snake body
+            # Insert new head
             self.body.insert(0, head)
+
+            # Remove last segment if not growing
             if not self.grow:
                 self.body.pop()
             else:

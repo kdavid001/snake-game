@@ -1,3 +1,7 @@
+from prims_algorithm import PrimsAlgorithm
+import time
+import random
+
 class HamiltonianCycle:
     def __init__(self, columns, rows):
         self.columns = columns
@@ -12,22 +16,23 @@ class HamiltonianCycle:
             mid_x = (start['x'] + end['x']) // 2
             mid_y = (start['y'] + end['y']) // 2
             mid = {'x': mid_x, 'y': mid_y}
+
             points.extend([start, mid, end])
 
         def is_in_points(x, y):
             return any(pos['x'] == x and pos['y'] == y for pos in points)
 
-        def is_in_cycle(current, cycle):
-            return any(pos['x'] == current['x'] and pos['y'] == current['y'] for pos in cycle)
-
         cycle = [{'x': 0, 'y': 0}]
         current = cycle[0]
+
+        def is_in_cycle(pos):
+            return any(p['x'] == pos['x'] and p['y'] == pos['y'] for p in cycle)
 
         directions = {
             'up': {'x': 0, 'y': -1},
             'down': {'x': 0, 'y': 1},
             'left': {'x': -1, 'y': 0},
-            'right': {'x': 1, 'y': 0}
+            'right': {'x': 1, 'y': 0},
         }
 
         direction = directions['right']
@@ -69,75 +74,74 @@ class HamiltonianCycle:
                 else:
                     direction = directions['right']
 
-            if not is_in_cycle(current, cycle):
+            if not is_in_cycle(current):
                 cycle.append(current)
-
         return cycle
 
+def get_cycle_action(head_pos, cycle):
+    try:
+        idx = cycle.index(head_pos)
+        next_pos = cycle[(idx + 1) % len(cycle)]
+    except ValueError:
+        print(f"[ERROR] Head position {head_pos} not in Hamiltonian cycle!")
+        return random.randint(0, 3)
 
-from matplotlib import pyplot as plt
+    dx = next_pos[0] - head_pos[0]
+    dy = next_pos[1] - head_pos[1]
 
-cycle = HamiltonianCycle(6, 6)
+    if dx == 1:
+        return 0  # RIGHT
+    elif dx == -1:
+        return 1  # LEFT
+    elif dy == 1:
+        return 2  # DOWN
+    elif dy == -1:
+        return 3  # UP
+    else:
+        print(f"[ERROR] Invalid movement from {head_pos} to {next_pos}")
+        return random.randint(0, 3,)  # if no valid path, choose randomly
+        # Initialize grid just incase the snake body drifts from the grid
+def start_cycle(height, width):
+    BLOCK_SIZE = 20
+    grid_rows = height // BLOCK_SIZE  # 30
+    grid_cols = width // BLOCK_SIZE   # 40
 
+    print("Initializing grid...")
+    start_time = time.time()
+    prim = PrimsAlgorithm(grid_cols, grid_rows)
+    nodes = prim.create_nodes()
+    edges = prim.create_edges()
+    mst_edges = prim.create_final_edges(edges)
 
-def draw_cycle(cycle, width, height):
-    """Visualize the cycle"""
-    fig, ax = plt.subplots(figsize=(10, 10))
+    # This creates a cycle over the correct grid size
+    ham = HamiltonianCycle(grid_cols // 2, grid_rows // 2)
+    cycle = ham.create_cycle(nodes, mst_edges)
+    print(f"Time taken: {time.time() - start_time} seconds")
 
-    # Draw grid
-    for x in range(width + 1):
-        ax.axvline(x, color='gray', linestyle='--', linewidth=0.5)
-    for y in range(height + 1):
-        ax.axhline(y, color='gray', linestyle='--', linewidth=0.5)
+    from matplotlib import pyplot as plt
 
-    # Plot path
-    x, y = zip(*cycle)
-    ax.plot(x, y, 'b-', alpha=0.5)
-    ax.scatter(x, y, c=range(len(cycle)), cmap='viridis', s=50)
+    # Extract x and y coordinates
+    x_coords = [point['x'] for point in cycle]
+    y_coords = [point['y'] for point in cycle]
 
-    # Mark start and end
-    ax.plot(x[0], y[0], 'go', markersize=10, label='Start')
-    ax.plot(x[-1], y[-1], 'ro', markersize=10, label='End')
+    # To close the cycle, append the first point again
+    x_coords.append(cycle[0]['x'])
+    y_coords.append(cycle[0]['y'])
 
-    ax.set_aspect('equal')
-    ax.invert_yaxis()
-    plt.xticks(range(width))
-    plt.yticks(range(height))
-    plt.title(f"Random Hamiltonian Cycle ({width}x{height})")
-    plt.legend()
-    plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax=ax, label='Path Order')
+    # Plotting
+    plt.figure(figsize=(10, 7))
+    plt.plot(x_coords, y_coords, marker='o', linestyle='-')
+
+    # Optional: make it grid-like
+    plt.grid(True)
+    plt.title("Hamiltonian Cycle Path")
+    plt.xlabel("X")
+    plt.ylabel("Y")
+    plt.gca().set_aspect('equal')  # Make the grid squares proportional
     plt.show()
 
-if __name__ == '__main__':
-    if __name__ == '__main__':
-        # Grid size
-        width, height = 6, 6
+    cycle = [(point['x'], point['y']) for point in cycle]
+    print("Hamiltonian Cycle with MST:", cycle)
+    return cycle
 
-        # Generate dummy nodes and final edges for testing
-        nodes = []
-        node_map = {}
-        index = 0
-        for y in range(height):
-            for x in range(width):
-                node = {'x': x, 'y': y}
-                nodes.append(node)
-                node_map[(x, y)] = index
-                index += 1
 
-        final_edges = []
-        for (x, y), idx in node_map.items():
-            for dx, dy in [(1, 0), (0, 1)]:
-                nx, ny = x + dx, y + dy
-                if (nx, ny) in node_map:
-                    final_edges.append({'startNode': idx, 'endNode': node_map[(nx, ny)]})
-
-        # Generate the cycle
-        raw_cycle = cycle.create_cycle(nodes, final_edges)
-
-        # Print the cycle as (x, y) tuples
-        tuple_cycle = [(pos['x'], pos['y']) for pos in raw_cycle]
-        print("Generated Hamiltonian cycle:")
-        print(tuple_cycle)
-
-        # Optional: Visualize it
-        draw_cycle(tuple_cycle, width, height)

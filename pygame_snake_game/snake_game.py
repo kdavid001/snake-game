@@ -23,8 +23,11 @@ class SnakeGame:
 
     def reset(self):
         # Generate random starting positions for snake and food
-        start_x = random.randint(self.block_size, self.width - self.block_size)
-        start_y = random.randint(self.block_size, self.height - self.block_size)
+        # start_x = random.randint(self.block_size, self.width - self.block_size)
+        # start_y = random.randint(self.block_size, self.height - self.block_size)
+
+        start_x = random.randint(0, (self.width // self.block_size) - 1) * self.block_size
+        start_y = random.randint(0, (self.height // self.block_size) - 1) * self.block_size
 
         # Reset the snake and food
         self.snake = Snake(self.block_size, (start_x, start_y))

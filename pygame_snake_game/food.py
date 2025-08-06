@@ -1,6 +1,8 @@
 import pygame
 import random
 
+BLOCK_SIZE = 20
+
 class Food:
     def __init__(self, screen_width, screen_height):
         self.radius = 8
@@ -11,8 +13,11 @@ class Food:
 
     # Respawn food
     def respawn(self):
-        self.x = random.randint(self.radius, self.screen_width - self.radius)
-        self.y = random.randint(self.radius, self.screen_height - self.radius)
+        cols = self.screen_width // BLOCK_SIZE
+        rows = self.screen_height // BLOCK_SIZE
+        self.x = random.randint(0, cols - 1) * BLOCK_SIZE
+        self.y = random.randint(0, rows - 1) * BLOCK_SIZE
+
         self.rect = pygame.Rect(
             self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2
         )
