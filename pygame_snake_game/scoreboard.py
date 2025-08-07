@@ -8,7 +8,7 @@ class Scoreboard:
                 content = score_file.read().strip()
                 self.high_score = int(content) if content else 0
         except FileNotFoundError:
-            # if File doesn't exist yet, create it with score 0
+            # if File doesn't exist yet, creates with score 0
             with open("highscore_for_snake_game.txt", "w") as score_file:
                 score_file.write("0")
             self.high_score = 0

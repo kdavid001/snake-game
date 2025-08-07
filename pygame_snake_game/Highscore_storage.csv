@@ -1,0 +1,6 @@
+File_Path, higheset_score,best mean score,Comments
+Current DQN WEIGHTS/snake_dqn.pth,59,,
+Current DQN WEIGHTS/Weight_wn_Reward_sys.pth,62,1900,
+Current DQN WEIGHTS/Best_current_weight.pth.pth,52,1500,
+CNN_weights(5x5).pth,32,1000,
+CNN_weights(7x7).pth,16,600,

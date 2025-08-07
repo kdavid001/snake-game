@@ -15,8 +15,8 @@ class Food:
     def respawn(self):
         cols = self.screen_width // BLOCK_SIZE
         rows = self.screen_height // BLOCK_SIZE
-        self.x = random.randint(0, cols - 1) * BLOCK_SIZE
-        self.y = random.randint(0, rows - 1) * BLOCK_SIZE
+        self.x = random.randint(0, cols - 1) * BLOCK_SIZE + self.radius
+        self.y = random.randint(0, rows - 1) * BLOCK_SIZE + self.radius
 
         self.rect = pygame.Rect(
             self.x - self.radius, self.y - self.radius, self.radius * 2, self.radius * 2

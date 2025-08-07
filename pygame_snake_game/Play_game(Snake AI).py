@@ -7,7 +7,7 @@ from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
 
 # Setup
 agent = DQNAgent()
-agent.policy_net.load_state_dict(torch.load("Current DQN WEIGHTS/dqn_weights.pth"))
+agent.policy_net.load_state_dict(torch.load("Current DQN WEIGHTS/Best_current_weight.pth"))
 agent.policy_net.to(device)
 agent.policy_net.eval()
 agent.epsilon = 0.0  # Greedy play
