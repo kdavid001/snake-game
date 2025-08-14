@@ -10,7 +10,6 @@ font = pygame.font.SysFont('Arial', 30)
 
 screen = pygame.display.set_mode((800, 600))
 
-
 class SnakeGame:
     def __init__(self, width=800, height=600):
         self.width = width

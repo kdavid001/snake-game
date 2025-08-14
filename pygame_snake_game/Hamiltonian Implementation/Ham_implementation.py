@@ -2,13 +2,14 @@
 import torch
 import pygame
 import sys
+import sys, os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
-from nan import start_cycle, get_cycle_action
-from ham_cycle import HamiltonianCycle, get_cycle_action
+from nan import get_cycle_action, create_cycle
 
 
 agent = DQNAgent()
-agent.policy_net.load_state_dict(torch.load("Current DQN WEIGHTS/Best_current_weight.pth"))
+agent.policy_net.load_state_dict(torch.load("../Current DQN WEIGHTS/Best_current_weight.pth"))
 agent.policy_net.to(device)
 agent.policy_net.eval()
 agent.epsilon = 0.0  # Greedy play
@@ -18,10 +19,11 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 BLOCK_SIZE = 20
 
-print(game.height, game.width)
-# ham_cycle = start_cycle(game.height, game.width)
-ham_cycle = HamiltonianCycle(game.height, game.width,)
-cycle = ham_cycle.create_cycle()
+print(f"Games width and Height{game.width}, {game.height}")
+precomputed_cycle = create_cycle(width= game.width, height=game.height)
+print(precomputed_cycle)
+
+
 # Setup
 
 def should_fallback(snake, game):
@@ -29,8 +31,15 @@ def should_fallback(snake, game):
     threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.0
     return len(snake.body) >= threshold
 
+def rotate_cycle(cycle, head_pos):
+    if head_pos in cycle:
+        idx = cycle.index(head_pos)
+        return cycle[idx:] + cycle[:idx]
+    else:
+        raise ValueError("Head position not found in cycle")
 
 def play_game():
+    global game
     for episode in range(10):
         state = game.reset()
         current_state = agent.get_state(state).to(device)
@@ -48,15 +57,19 @@ def play_game():
             )
             print(game.snake.body[0].x, game.snake.body[0].y)
             print(f"Current_head_pos{snake_head_pos}")
-
-            if should_fallback(game.snake, game):
-                # action = get_cycle_action(snake_head_pos, ham_cycle)
-                action =get_cycle_action(snake_head_pos, cycle=cycle)
-                print(f"{action} -> {snake_head_pos}")
-            else:
-                action = agent.act(current_state)
+            # if should_fallback(game.snake, game):
+            #     # action = get_cycle_action(snake_head_pos, ham_cycle)
+            #     action =get_cycle_action(snake_head_pos, cycle=cycle)
+            #     print(f"{action} -> {snake_head_pos}")
+            # else:
+            #     action = agent.act(current_state)
+            cycle = precomputed_cycle
+            cycle = rotate_cycle(cycle, snake_head_pos)
+            # debug: show a short slice of the rotated cycle so we can verify ordering
+            print("Rotated cycle (first 6):", cycle[:6])
+            action = get_cycle_action(snake_head_pos, cycle, game.width, game.height)
+            print(f"Action direction: {action}  -> head: {snake_head_pos} next: {cycle[1]}")
             next_state, reward, done = game.step(action)
-            print(f"next_state: {next_state}")
             current_state = agent.get_state(next_state).to(device)
             Total_reward += reward
 

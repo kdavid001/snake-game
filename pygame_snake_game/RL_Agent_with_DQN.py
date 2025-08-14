@@ -278,6 +278,7 @@ def train_model():
                     sys.exit()
 
             action = agent.act(current_state)
+            # print(f"Action: {action}, {type(action)}")
             next_state, reward, done = game.step(action)
             # reward = reward.to(device)
             next_state_processed = agent.get_state(next_state).to(device)  # get the processed state and move to GPU
@@ -300,6 +301,7 @@ def train_model():
         mean_scores.append(mean_score)
         episodes.append(episode)
         best_mean_score = 1900 # from previous training
+
         # Save best model
         if mean_score > best_mean_score:
             best_mean_score = mean_score
