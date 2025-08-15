@@ -16,16 +16,16 @@ class Scoreboard:
         self.score = 0
         self.font = pygame.font.Font(None, 48)
         self.high_score_font = pygame.font.Font(None, 48)
-        self.score_text = self.font.render(f"Score: {0}", True, (255, 255, 255))
-        self.high_score_text = self.font.render(f"High Score: {0}", True, (255, 255, 255))
+        self.score_text = self.font.render(f"Score: {0}", True, (0, 0, 255))
+        self.high_score_text = self.font.render(f"High Score: {0}", True, (0, 0, 255))
         self.score_rect = self.score_text.get_rect(center=(300, 50))
         self.high_score_rect = self.high_score_text.get_rect(center=(600, 50))
 
     # To update the scoreboard
     def update(self, screen, fps):
 
-        self.score_text = self.font.render(f"Score: {self.score}", True, (255, 255, 255))
-        self.high_score_text = self.font.render(f"High Score: {self.high_score}", True, (255, 255, 255))
+        self.score_text = self.font.render(f"Score: {self.score}", True, (0, 0, 255))
+        self.high_score_text = self.font.render(f"High Score: {self.high_score}", True, (0, 0, 255))
         screen.blit(self.score_text, self.score_rect)
         screen.blit(self.high_score_text, self.high_score_rect)
 

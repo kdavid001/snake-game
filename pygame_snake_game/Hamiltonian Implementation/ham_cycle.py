@@ -317,51 +317,78 @@ def hamiltonian_cycle(grid_rows, grid_columns, orientation):
 
 
 def draw_cycle(cycle, height, width):
-    """Visualize the cycle with clear grid and cell overlay"""
-    import matplotlib.patches as patches
-    fig, ax = plt.subplots(figsize=(12, 9))  # larger figure for clarity
+    """Visualize the cycle"""
+    fig, ax = plt.subplots(figsize=(8, 6))
 
-    # Draw grid cells as rectangles
-    for i in range(height):
-        for j in range(width):
-            rect = patches.Rectangle((j, i), 1, 1, linewidth=1.2, edgecolor='#888', facecolor='#f8f8f8', zorder=1)
-            ax.add_patch(rect)
-
-    # Draw grid lines (lighter for debugging)
+    # Draw grid
     for x in range(width + 1):
-        ax.axvline(x, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
+        ax.axvline(x, color='gray', linestyle='--', linewidth=0.5)
     for y in range(height + 1):
-        ax.axhline(y, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
+        ax.axhline(y, color='gray', linestyle='--', linewidth=0.5)
 
-    # Plot path line over grid
+    # Plot path
     x, y = zip(*cycle)
-    ax.plot(x, y, 'b-', alpha=0.7, linewidth=2.2, zorder=3)
-    ax.scatter(x, y, c=range(len(cycle)), cmap='viridis', s=80, zorder=4)
+    ax.plot(x, y, 'b-', alpha=0.5)
+    ax.scatter(x, y, c=range(len(cycle)), cmap='viridis', s=50)
 
-    # Mark start and end clearly with edge
-    ax.plot(x[0], y[0], 'go', markersize=16, markeredgecolor='black', markeredgewidth=2, label='Start', zorder=5)
-    ax.plot(x[-1], y[-1], 'ro', markersize=16, markeredgecolor='black', markeredgewidth=2, label='End', zorder=5)
+    # Mark start and end
+    ax.plot(x[0], y[0], 'go', markersize=10, label='Start')
+    ax.plot(x[-1], y[-1], 'ro', markersize=10, label='End')
 
-    # Draw a thicker rectangle around start/end cell for clarity
-    start_rect = patches.Rectangle((x[0]//1, y[0]//1), 1, 1, linewidth=2.5, edgecolor='green', facecolor='none', zorder=6)
-    ax.add_patch(start_rect)
-    end_rect = patches.Rectangle((x[-1]//1, y[-1]//1), 1, 1, linewidth=2.5, edgecolor='red', facecolor='none', zorder=6)
-    ax.add_patch(end_rect)
-
-    # Set axis limits and aspect
-    ax.set_xlim(-0.5, width + 0.5)
-    ax.set_ylim(-0.5, height + 0.5)
     ax.set_aspect('equal')
     ax.invert_yaxis()
     plt.xticks(range(width))
     plt.yticks(range(height))
-    plt.grid(False)
-    plt.title(f"Hamiltonian Cycle Visualization ({width}x{height})")
+    plt.title(f"Random Hamiltonian Cycle ({width}x{height})")
     plt.legend()
     plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax=ax, label='Path Order')
-    plt.tight_layout()
     plt.show()
 
+# def draw_cycle(cycle, height, width):
+#     """Visualize the cycle with clear grid and cell overlay"""
+#     import matplotlib.patches as patches
+#     fig, ax = plt.subplots(figsize=(12, 9))  # larger figure for clarity
+#
+#     # Draw grid cells as rectangles
+#     for i in range(height):
+#         for j in range(width):
+#             rect = patches.Rectangle((j, i), 1, 1, linewidth=1.2, edgecolor='#888', facecolor='#f8f8f8', zorder=1)
+#             ax.add_patch(rect)
+#
+#     # Draw grid lines (lighter for debugging)
+#     for x in range(width + 1):
+#         ax.axvline(x, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
+#     for y in range(height + 1):
+#         ax.axhline(y, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
+#
+#     # Plot path line over grid
+#     x, y = zip(*cycle)
+#     ax.plot(x, y, 'b-', alpha=0.7, linewidth=2.2, zorder=3)
+#     ax.scatter(x, y, c=range(len(cycle)), cmap='viridis', s=80, zorder=4)
+#
+#     # Mark start and end clearly with edge
+#     ax.plot(x[0], y[0], 'go', markersize=16, markeredgecolor='black', markeredgewidth=2, label='Start', zorder=5)
+#     ax.plot(x[-1], y[-1], 'ro', markersize=16, markeredgecolor='black', markeredgewidth=2, label='End', zorder=5)
+#
+#     # Draw a thicker rectangle around start/end cell for clarity
+#     start_rect = patches.Rectangle((x[0]//1, y[0]//1), 1, 1, linewidth=2.5, edgecolor='green', facecolor='none', zorder=6)
+#     ax.add_patch(start_rect)
+#     end_rect = patches.Rectangle((x[-1]//1, y[-1]//1), 1, 1, linewidth=2.5, edgecolor='red', facecolor='none', zorder=6)
+#     ax.add_patch(end_rect)
+#
+#     # Set axis limits and aspect
+#     ax.set_xlim(-0.5, width + 0.5)
+#     ax.set_ylim(-0.5, height + 0.5)
+#     ax.set_aspect('equal')
+#     ax.invert_yaxis()
+#     plt.xticks(range(width))
+#     plt.yticks(range(height))
+#     plt.grid(False)
+#     plt.title(f"Hamiltonian Cycle Visualization ({width}x{height})")
+#     plt.legend()
+#     plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax=ax, label='Path Order')
+#     plt.tight_layout()
+#     plt.show()
 
 """ Width x Height """
 # cycle = prim_maze_generator(600 // 40, 800 // 40)
