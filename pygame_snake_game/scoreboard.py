@@ -18,7 +18,7 @@ class Scoreboard:
         self.high_score_font = pygame.font.Font(None, 48)
         self.score_text = self.font.render(f"Score: {0}", True, (255, 255, 255))
         self.high_score_text = self.font.render(f"High Score: {0}", True, (255, 255, 255))
-        self.score_rect = self.score_text.get_rect(center=(400, 50))
+        self.score_rect = self.score_text.get_rect(center=(300, 50))
         self.high_score_rect = self.high_score_text.get_rect(center=(600, 50))
 
     # To update the scoreboard

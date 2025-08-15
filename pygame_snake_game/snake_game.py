@@ -8,10 +8,12 @@ import random
 pygame.font.init()
 font = pygame.font.SysFont('Arial', 30)
 
-screen = pygame.display.set_mode((800, 600))
+width = 800
+height = 600
+screen = pygame.display.set_mode((width, height))
 
 class SnakeGame:
-    def __init__(self, width=800, height=600):
+    def __init__(self, width=width, height=height, mode="rl"):
         self.width = width
         self.height = height
         self.block_size = 20
@@ -21,6 +23,8 @@ class SnakeGame:
         self.done = False
         # trying to prevent looping
         self.steps_since_last_food = 0
+        # Implementing a Cycle mode so the snake knows when to switch.
+        self.mode = mode
 
     def reset(self):
         start_x = random.randint(0, (self.width // self.block_size) - 1) * self.block_size
@@ -45,55 +49,71 @@ class SnakeGame:
         # Handle direction from action
         actions = ['up', 'down', 'left', 'right']
         self.snake.change_direction(actions[action])
+        # self.snake.move(1 / 15)  # fixed delta time for now
+        # Move the snake exactly one block per step
+        self.snake.move(self.snake.time_per_step)
 
-        self.snake.move(1 / 15)  # fixed delta time for now
+        # Snap all snake segments to the grid to prevent floating-point drift
+        for seg in self.snake.body:
+            seg.x = round(seg.x / self.block_size) * self.block_size
+            seg.y = round(seg.y / self.block_size) * self.block_size
+
         self.steps_since_last_food += 1
-        reward = -1
+
+        # Step Penalty for RL mode
+        reward = -1 if self.mode == "rl" else 0
+
         head = self.snake.body[0]
 
-        # to Calculate Euclidean distance to the food
+        # To Calculate Euclidean distance to the food
         food_x, food_y = self.food.rect.x, self.food.rect.y
         snake_x, snake_y = head.x, head.y
-        distance_to_food = math.sqrt((food_x - snake_x) ** 2 + (food_y - snake_y) ** 2)
 
-        if self.previous_distance is None:
+        if self.mode == "rl":
+            distance_to_food = math.sqrt((food_x - snake_x) ** 2 + (food_y - snake_y) ** 2)
+            if self.previous_distance is None:
+                self.previous_distance = distance_to_food
+                # Calculate distance change
+                distance_change = self.previous_distance - distance_to_food
+
+                # Reward/penalty based on movement toward/away from food
+                if abs(distance_change) > 2:  # Only considers meaningful movements
+                    if distance_change > 0:  # Moved closer
+                        reward += distance_change * 0.15
+                    else:  # Moved away
+                        reward -= 0.05 * abs(distance_change)  # Smaller penalty for moving away
+
+            # Bonus for being very close (helps with final approach)
+            if distance_to_food < 15:
+                decay_factor = max(0.0, 1.0 - (self.steps_since_last_food / 200))
+                reward_bonus = 0.05 * max(0, (15 - math.floor(distance_to_food))) * decay_factor
+                reward += reward_bonus
+            #   reward += 0.1 * (15 - distance_to_food)
+
             self.previous_distance = distance_to_food
 
-        # Calculate distance change
-        distance_change = self.previous_distance - distance_to_food
+        else:
+            reward += 0.01
 
-        # Reward/penalty based on movement toward/away from food
-        if abs(distance_change) > 2:  # Only considers meaningful movements
-            if distance_change > 0:  # Moved closer
-                reward += distance_change * 0.15
-            else:  # Moved away
-                reward -= 0.05 * abs(distance_change)  # Smaller penalty for moving away
 
-        # Bonus for being very close (helps with final approach)
-        if distance_to_food < 15:
-            decay_factor = max(0.0, 1.0 - (self.steps_since_last_food / 200))
-            reward_bonus = 0.05 * max(0, (15 - math.floor(distance_to_food))) * decay_factor
-            reward += reward_bonus
-        #   reward += 0.1 * (15 - distance_to_food)
-
-        self.previous_distance = distance_to_food
 
         # Check collisions
-        if (head.left < 0 or head.right > self.width or
-                head.top < 0 or head.bottom > self.height or
-                any(head.colliderect(seg) for seg in self.snake.body[3:])):
+        grid_x = head.x // self.block_size
+        grid_y = head.y // self.block_size
+        if grid_x < 0 or grid_x >= (self.width // self.block_size) or \
+                grid_y < 0 or grid_y >= (self.height // self.block_size) or \
+                any(head.colliderect(seg) for seg in self.snake.body[3:]):
             self.done = True
-            # self.reset()
             reward = -50
             return self.get_state(), reward, self.done
 
-        # just added this,After collision checks and food checks
+        # Just added this,After collision checks and food checks
         # Dynamic step limit to allow more time as snake grows
         base_steps = 100
         steps_per_segment = 10
         max_steps = base_steps + len(self.snake.body) * steps_per_segment
 
-        if self.steps_since_last_food > max_steps:
+        if self.mode == "rl" and self.steps_since_last_food > max_steps:
             reward -= 10
             self.done = True
             return self.get_state(), reward, self.done
@@ -116,10 +136,23 @@ class SnakeGame:
 
         return self.get_state(), reward, self.done
 
+    # def render(self, screen, fps):
+    #     screen.fill("black")
+    #     self.food.draw(screen)
+    #     self.snake.draw(screen)
+    #     self.scoreboard.update(screen, fps)
+
     def render(self, screen, fps):
         screen.fill("black")
         self.food.draw(screen)
         self.snake.draw(screen)
+
+        # Draw grid lines for debugging
+        for x in range(0, self.width, self.block_size):
+            pygame.draw.line(screen, (40, 40, 40), (x, 0), (x, self.height))  # vertical
+        for y in range(0, self.height, self.block_size):
+            pygame.draw.line(screen, (40, 40, 40), (0, y), (self.width, y))  # horizontal
+
         self.scoreboard.update(screen, fps)
 
     def get_state(self):
