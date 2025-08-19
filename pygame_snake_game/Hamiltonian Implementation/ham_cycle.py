@@ -3,6 +3,7 @@ Taking the Ham_cycle apart to get a proper understanding
 """
 from random import randint
 import matplotlib.pyplot as plt
+from collections import deque
 
 
 # Generates a path composed of coordinates for the snake to travel along
@@ -344,53 +345,167 @@ def draw_cycle(cycle, height, width):
     plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax=ax, label='Path Order')
     plt.show()
 
-# def draw_cycle(cycle, height, width):
-#     """Visualize the cycle with clear grid and cell overlay"""
-#     import matplotlib.patches as patches
-#     fig, ax = plt.subplots(figsize=(12, 9))  # larger figure for clarity
-#
-#     # Draw grid cells as rectangles
-#     for i in range(height):
-#         for j in range(width):
-#             rect = patches.Rectangle((j, i), 1, 1, linewidth=1.2, edgecolor='#888', facecolor='#f8f8f8', zorder=1)
-#             ax.add_patch(rect)
-#
-#     # Draw grid lines (lighter for debugging)
-#     for x in range(width + 1):
-#         ax.axvline(x, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
-#     for y in range(height + 1):
-#         ax.axhline(y, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
-#
-#     # Plot path line over grid
-#     x, y = zip(*cycle)
-#     ax.plot(x, y, 'b-', alpha=0.7, linewidth=2.2, zorder=3)
-#     ax.scatter(x, y, c=range(len(cycle)), cmap='viridis', s=80, zorder=4)
-#
-#     # Mark start and end clearly with edge
-#     ax.plot(x[0], y[0], 'go', markersize=16, markeredgecolor='black', markeredgewidth=2, label='Start', zorder=5)
-#     ax.plot(x[-1], y[-1], 'ro', markersize=16, markeredgecolor='black', markeredgewidth=2, label='End', zorder=5)
-#
-#     # Draw a thicker rectangle around start/end cell for clarity
-#     start_rect = patches.Rectangle((x[0]//1, y[0]//1), 1, 1, linewidth=2.5, edgecolor='green', facecolor='none', zorder=6)
-#     ax.add_patch(start_rect)
-#     end_rect = patches.Rectangle((x[-1]//1, y[-1]//1), 1, 1, linewidth=2.5, edgecolor='red', facecolor='none', zorder=6)
-#     ax.add_patch(end_rect)
-#
-#     # Set axis limits and aspect
-#     ax.set_xlim(-0.5, width + 0.5)
-#     ax.set_ylim(-0.5, height + 0.5)
-#     ax.set_aspect('equal')
-#     ax.invert_yaxis()
-#     plt.xticks(range(width))
-#     plt.yticks(range(height))
-#     plt.grid(False)
-#     plt.title(f"Hamiltonian Cycle Visualization ({width}x{height})")
-#     plt.legend()
-#     plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax=ax, label='Path Order')
-#     plt.tight_layout()
-#     plt.show()
+    # def draw_cycle(cycle, height, width):
+    #     """Visualize the cycle with clear grid and cell overlay"""
+    #     import matplotlib.patches as patches
+    #     fig, ax = plt.subplots(figsize=(12, 9))  # larger figure for clarity
+    #
+    #     # Draw grid cells as rectangles
+    #     for i in range(height):
+    #         for j in range(width):
+    #             rect = patches.Rectangle((j, i), 1, 1, linewidth=1.2, edgecolor='#888', facecolor='#f8f8f8', zorder=1)
+    #             ax.add_patch(rect)
+    #
+    #     # Draw grid lines (lighter for debugging)
+    #     for x in range(width + 1):
+    #         ax.axvline(x, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
+    #     for y in range(height + 1):
+    #         ax.axhline(y, color='#bbb', linestyle='-', linewidth=0.7, zorder=2)
+    #
+    #     # Plot path line over grid
+    #     x, y = zip(*cycle)
+    #     ax.plot(x, y, 'b-', alpha=0.7, linewidth=2.2, zorder=3)
+    #     ax.scatter(x, y, c=range(len(cycle)), cmap='viridis', s=80, zorder=4)
+    #
+    #     # Mark start and end clearly with edge
+    #     ax.plot(x[0], y[0], 'go', markersize=16, markeredgecolor='black', markeredgewidth=2, label='Start', zorder=5)
+    #     ax.plot(x[-1], y[-1], 'ro', markersize=16, markeredgecolor='black', markeredgewidth=2, label='End', zorder=5)
+    #
+    #     # Draw a thicker rectangle around start/end cell for clarity
+    #     start_rect = patches.Rectangle((x[0]//1, y[0]//1), 1, 1, linewidth=2.5, edgecolor='green', facecolor='none', zorder=6)
+    #     ax.add_patch(start_rect)
+    #     end_rect = patches.Rectangle((x[-1]//1, y[-1]//1), 1, 1, linewidth=2.5, edgecolor='red', facecolor='none', zorder=6)
+    #     ax.add_patch(end_rect)
+    #
+    #     # Set axis limits and aspect
+    #     ax.set_xlim(-0.5, width + 0.5)
+    #     ax.set_ylim(-0.5, height + 0.5)
+    #     ax.set_aspect('equal')
+    #     ax.invert_yaxis()
+    #     plt.xticks(range(width))
+    #     plt.yticks(range(height))
+    #     plt.grid(False)
+    #     plt.title(f"Hamiltonian Cycle Visualization ({width}x{height})")
+    #     plt.legend()
+    #     plt.colorbar(plt.cm.ScalarMappable(cmap='viridis'), ax=ax, label='Path Order')
+    #     plt.tight_layout()
+    #     plt.show()
 
-""" Width x Height """
-# cycle = prim_maze_generator(600 // 40, 800 // 40)
-# print(cycle)
-# width, height = 40, 30
+    # if __name__ == '__main__':
+    """ Width x Height """
+    # cycle = prim_maze_generator(600 // 40, 800 // 40)
+    # print(cycle)
+    # width, height = 40, 30
+
+
+def get_neighbors(pos, grid):
+    """
+    Return all valid neighbors of `pos` in the grid that are walkable.
+    pos: (row, col) tuple
+    grid: 2D list or dict representing free cells (1 = free, 0 = blocked)
+    """
+    neighbors = []
+    rows = len(grid)
+    cols = len(grid[0])
+    row, col = pos
+
+    # Up
+    if row > 0 and grid[row - 1][col]:
+        neighbors.append((row - 1, col))
+    # Down
+    if row < rows - 1 and grid[row + 1][col]:
+        neighbors.append((row + 1, col))
+    # Left
+    if col > 0 and grid[row][col - 1]:
+        neighbors.append((row, col - 1))
+    # Right
+    if col < cols - 1 and grid[row][col + 1]:
+        neighbors.append((row, col + 1))
+
+    return neighbors
+
+
+def is_tail_reachable(grid, head_pos, snake_body):
+    """
+    Check if the snake's head can still reach its tail.
+    grid: 2D list (1=free, 0=blocked)
+    head_pos: (row, col) of the new head
+    snake_body: list of (row, col) positions of the snake's body (head first)
+    """
+    if not snake_body:
+        return True
+
+    tail_pos = snake_body[-1]
+
+    # Make a copy of the grid so we can "free" the tail
+    temp_grid = [row[:] for row in grid]
+    # Free the tail cell, since it moves away next step
+    tr, tc = tail_pos
+    temp_grid[tr][tc] = 1
+    visited = set()
+    queue = deque([head_pos])
+    while queue:
+        r, c = queue.popleft()
+        if (r, c) == tail_pos:
+            return True
+        for nr, nc in get_neighbors((r, c), temp_grid):
+            if (nr, nc) not in visited:
+                visited.add((nr, nc))
+                queue.append((nr, nc))
+    return False
+
+
+def find_safe_path(grid, snake_head, fruit_pos, snake_body):
+    # grid: 2D list or dict of cells
+    # snake_head: current head pos
+    # fruit_pos: target fruit
+    # snake_body: occupied positions
+    # returns a list of grid positions
+    visited = set(snake_body)
+    queue = deque([(snake_head, [])])
+    while queue:
+        current, path = queue.popleft()
+        if current == fruit_pos:
+            # check if path leaves space (tail reachable, or cycle safe)
+            if is_tail_reachable(grid, current, snake_body):
+                return path + [current]
+            else:
+                continue  # keep searching for another safe path
+        for neighbor in get_neighbors(current, grid):
+            if neighbor not in visited:
+                visited.add(neighbor)
+                queue.append((neighbor, path + [current]))
+    return None  # no path found
+
+
+def convert_next_cell_to_action(next_cell, snake_head_pos):
+    """For BFS"""
+    if next_cell[0] < snake_head_pos[0]:
+        action = 0  # up
+    elif next_cell[0] > snake_head_pos[0]:
+        action = 1  # down
+    elif next_cell[1] < snake_head_pos[1]:
+        action = 2  # left
+    else:
+        action = 3  # right
+    return action
+
+
+def convert_next_cell_to_ham_action(next_cell, snake_head_pos):
+    if next_cell[0] > snake_head_pos[0]:
+        action = 3  # right
+    elif next_cell[0] < snake_head_pos[0]:
+        action = 2  # left
+    elif next_cell[1] > snake_head_pos[1]:
+        action = 1  # down
+    else:
+        action = 0  # up
+    return action
+
+def rotate_cycle(cycle, head_pos):
+    if head_pos in cycle:
+        idx = cycle.index(head_pos)
+        return cycle[idx:] + cycle[:idx]
+    else:
+        raise ValueError("Head position not found in cycle")
+

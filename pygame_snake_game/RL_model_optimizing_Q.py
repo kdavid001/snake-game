@@ -13,7 +13,7 @@ GRID_WIDTH = WIDTH // BLOCK_SIZE
 GRID_HEIGHT = HEIGHT // BLOCK_SIZE
 
 # Initialize Game
-game = SnakeGame(width=WIDTH, height=HEIGHT)
+game = SnakeGame(width=WIDTH, height=HEIGHT, mode="rl")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
@@ -33,7 +33,6 @@ EPISODES = 5000
 TRAINING_MODE = True
 RENDER_EVERY = 1
 
-# Initialize Plotting (SINGLE FIGURE)
 # plt.ion()
 # fig, ax = plt.subplots(figsize=(10, 5))
 # line_scores, = ax.plot([], [], 'b-', alpha=0.3, label='Score')

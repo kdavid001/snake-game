@@ -12,9 +12,10 @@ agent.policy_net.to(device)
 agent.policy_net.eval()
 agent.epsilon = 0.0  # Greedy play
 
-game = SnakeGame(width=WIDTH, height=HEIGHT)
+game = SnakeGame(width=WIDTH, height=HEIGHT, mode="rl")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+
 BLOCK_SIZE = 20
 
 

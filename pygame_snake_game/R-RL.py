@@ -35,7 +35,7 @@ LEARNING_RATE = 0.001
 # beta_frames = 100000
 # beta = min(1.0, beta_start + self.steps_done * (1.0 - beta_start) / beta_frames)
 
-game = SnakeGame(width=WIDTH, height=HEIGHT)
+game = SnakeGame(width=WIDTH, height=HEIGHT, mode="rl")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 # screen = pygame.Surface((WIDTH, HEIGHT))  # Off-screen rendering
 clock = pygame.time.Clock()

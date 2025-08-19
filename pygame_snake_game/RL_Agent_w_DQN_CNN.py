@@ -34,7 +34,7 @@ EPSILON_DECAY = 0.995
 LEARNING_RATE = 0.001
 
 # Initialize Game
-game = SnakeGame(width=WIDTH, height=HEIGHT)
+game = SnakeGame(width=WIDTH, height=HEIGHT,mode="rl")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
@@ -130,7 +130,7 @@ class DQNAgent:
         # danger_down = int((head[0], head[1] + BLOCK_SIZE) in body or head[1] + BLOCK_SIZE >= HEIGHT)
 
         # Snake length (normalized)
-        max_len = (GRID_WIDTH * GRID_HEIGHT) - 1
+        max_len = (GRID_WIDTH * GRID_HEIGHT)
         snake_len_norm = len(body) / max_len
 
         # 5x5 local grid: 1 if wall or body, 0 if free

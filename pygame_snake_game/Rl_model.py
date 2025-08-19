@@ -10,7 +10,7 @@ import csv
 width = 800
 height = 600
 
-game = SnakeGame()
+game = SnakeGame(width, height, mode="rl")
 action = ['up', 'down', 'left', 'right']
 action_idx = {a: i for i, a in enumerate(action)}
 
@@ -28,7 +28,7 @@ except FileNotFoundError:
     ), dtype=float) * (1.0 / len(action))
     print("Q-table initialized.")
 
-scoreboard = Scoreboard()
+scoreboard = Scoreboard(width, height)
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 

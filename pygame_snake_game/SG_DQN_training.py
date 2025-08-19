@@ -18,7 +18,6 @@ GRID_WIDTH = WIDTH // BLOCK_SIZE
 GRID_HEIGHT = HEIGHT // BLOCK_SIZE
 
 # Neural Network Parameters
-# STATE_SIZE = 4  # grid_x, grid_y, food_dir, danger_level
 STATE_SIZE = 13
 BATCH_SIZE = 128
 MEMORY_SIZE = 10000
@@ -35,19 +34,6 @@ clock = pygame.time.Clock()
 
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
-
-
-# csv save function
-# def save_weights_to_csv(state_dict, path):
-#     os.makedirs(os.path.dirname(path), exist_ok=True)
-#     with open(path, mode='w', newline='') as file:
-#         writer = csv.writer(file)
-#         for key, weight in state_dict.items():
-#             writer.writerow([key])
-#             flat_weights = weight.flatten().tolist()
-#             writer.writerow(flat_weights)
-#             writer.writerow([])
-#     print(f"Weights saved to {path}")
 
 
 class DQN(nn.Module):
@@ -71,8 +57,6 @@ class DQN(nn.Module):
 class DQNAgent:
     def __init__(self):
         # Policy Network
-        # self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
-        # self.target_net = DQN(STATE_SIZE, 4)  # Target_network
         self.policy_net = DQN(STATE_SIZE, 4)  # 14 input features now
         self.target_net = DQN(STATE_SIZE, 4)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
@@ -83,42 +67,6 @@ class DQNAgent:
         # Initialize target network
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
-
-    # def get_state(self, game_state):
-    #     """state representation with full danger detection"""
-    #     head = game_state['snake_head']
-    #     food = game_state['food']
-    #     body = game_state['snake_body']
-    #
-    #     # Normalized grid position
-    #     grid_x = head[0] // BLOCK_SIZE
-    #     grid_y = head[1] // BLOCK_SIZE
-    #
-    #     # Food direction (0-3: up, right, down, left)
-    #     dx, dy = food[0] - head[0], food[1] - head[1]
-    #     food_dir = (1 if dx > 0 else 3) if abs(dx) > abs(dy) else (2 if dy > 0 else 0)
-    #
-    #     # Danger detection in all 4 directions
-    #     danger = 0
-    #     # Check left, right, up, down
-    #     for x, y in [
-    #         (head[0] - BLOCK_SIZE, head[1]),  # Left
-    #         (head[0] + BLOCK_SIZE, head[1]),  # Right
-    #         (head[0], head[1] - BLOCK_SIZE),  # Up
-    #         (head[0], head[1] + BLOCK_SIZE)  # Down
-    #     ]:
-    #         if (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT) or ((x, y) in body):
-    #             danger += 1
-    #
-    #     # Normalized danger level (0-1.0)
-    #     danger_level = danger / 4
-    #
-    #     return torch.FloatTensor([
-    #         grid_x / GRID_WIDTH,
-    #         grid_y / GRID_HEIGHT,
-    #         food_dir / 3,
-    #         danger_level
-    #     ])
 
     def get_state(self, game_state):
         head = game_state['snake_head']
@@ -156,8 +104,8 @@ class DQNAgent:
         danger_down = int(is_danger(down))
 
         # Snake length normalized
-        max_possible_length = (GRID_WIDTH * GRID_HEIGHT) - 1
-        snake_length = len(body) / max_possible_length
+        max_possible_length = (GRID_WIDTH * GRID_HEIGHT)
+        snake_length = len(body) // max_possible_length
 
         # Build enriched state vector
         state = [
@@ -172,7 +120,7 @@ class DQNAgent:
             dir_down,
             dir_left,
             snake_length,
-            # 1.0  # normalized snake length
+            # 1.0 # constant bias term
         ]
 
         return torch.FloatTensor(state)
@@ -196,7 +144,7 @@ class DQNAgent:
         # unpacks them into separate lists
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        # Convert to tensors and move to GPU
+        # Converts to tensors and move to GPU
         states = torch.stack(states).to(device)
         actions = torch.LongTensor(actions).to(device)
         rewards = torch.FloatTensor(rewards).to(device)
@@ -208,7 +156,6 @@ class DQNAgent:
 
         # Target Q values
         with torch.no_grad():
-            # next_q = self.target_net(next_states).max(1)[0]
             # Double DQN
             next_actions = self.policy_net(next_states).argmax(1)
             next_q = self.target_net(next_states).gather(1, next_actions.unsqueeze(1)).squeeze()
@@ -249,6 +196,7 @@ best_mean_score = 1700  # from previous training
 NEW_WEIGHT_PATH = "Current DQN WEIGHTS/400x400_state_space(environment).pth" # higheset score 51
 # NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Best_current_weight.pth.pth" # higheset score 52 ?
 RETRAIN = True
+
 if os.path.exists(NEW_WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
     # updates overtime.

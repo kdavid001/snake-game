@@ -1,7 +1,7 @@
 import pygame
 
 class Snake:
-    def __init__(self, block_size, start_pos=(20, 20)):  # Adjusted start_pos to be grid-aligned
+    def __init__(self, block_size, start_pos=(20, 20)):
         self.block_size = block_size
         self.color = "white"
         self.speed = 200  # pixels per second
@@ -15,9 +15,9 @@ class Snake:
         # Initialize body with grid-aligned positions
         x, y = start_pos
         self.body = [
-            pygame.Rect(x, y, block_size, block_size),
-            pygame.Rect(x - block_size, y, block_size, block_size),
-            pygame.Rect(x - 2 * block_size, y, block_size, block_size)
+            pygame.Rect(x, y, self.block_size, self.block_size),
+            pygame.Rect(x - self.block_size, y, self.block_size, self.block_size),
+            pygame.Rect(x - 2 * self.block_size, y, self.block_size, self.block_size)
         ]
 
     def move(self, dt):

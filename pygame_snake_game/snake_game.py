@@ -4,22 +4,21 @@ from food import Food
 from scoreboard import Scoreboard
 import math
 import random
+from gameover import GameOver
 
 pygame.font.init()
 font = pygame.font.SysFont('Arial', 30)
 
-width = 800
-height = 600
-screen = pygame.display.set_mode((width, height))
 
 class SnakeGame:
-    def __init__(self, width=width, height=height, mode="rl"):
+    def __init__(self, width, height, mode="rl"):
         self.width = width
         self.height = height
         self.block_size = 20
         self.snake = Snake(self.block_size, (self.block_size, self.block_size))
-        self.food = Food(self.width, self.height)
-        self.scoreboard = Scoreboard()
+        self.food = Food(self.width, self.height, self.block_size)
+        self.scoreboard = Scoreboard(width, height)
+        self.gameover = GameOver(width, height)
         self.done = False
         # trying to prevent looping
         self.steps_since_last_food = 0
@@ -32,7 +31,7 @@ class SnakeGame:
         self.previous_distance = None
         # Reset the snake and food
         self.snake = Snake(self.block_size, (start_x, start_y))
-        self.food = Food(self.width, self.height)
+        self.food = Food(self.width, self.height, self.block_size)
 
         # Reset the scoreboard
         self.scoreboard.reset()
@@ -95,8 +94,6 @@ class SnakeGame:
         else:
             reward += 0.01
 
-
-
         # Check collisions
         grid_x = head.x // self.block_size
         grid_y = head.y // self.block_size
@@ -106,6 +103,8 @@ class SnakeGame:
             self.done = True
             reward = -50
             return self.get_state(), reward, self.done
+
+
 
         # Just added this,After collision checks and food checks
         # Dynamic step limit to allow more time as snake grows

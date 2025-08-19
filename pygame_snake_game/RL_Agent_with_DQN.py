@@ -9,7 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 from collections import deque
 from snake_game import SnakeGame
-import csv
+from gameover import GameOver
 
 # Game Constants
 WIDTH, HEIGHT = 800, 600
@@ -29,25 +29,14 @@ EPSILON_DECAY = 0.995
 LEARNING_RATE = 0.001
 
 # Initialize Game
-game = SnakeGame(width=WIDTH, height=HEIGHT)
+game = SnakeGame(width=WIDTH, height=HEIGHT, mode="rl")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+gameover = GameOver(WIDTH, HEIGHT)
 
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
 
-
-# csv save function
-# def save_weights_to_csv(state_dict, path):
-#     os.makedirs(os.path.dirname(path), exist_ok=True)
-#     with open(path, mode='w', newline='') as file:
-#         writer = csv.writer(file)
-#         for key, weight in state_dict.items():
-#             writer.writerow([key])
-#             flat_weights = weight.flatten().tolist()
-#             writer.writerow(flat_weights)
-#             writer.writerow([])
-#     print(f"Weights saved to {path}")
 
 
 class DQN(nn.Module):
@@ -71,10 +60,8 @@ class DQN(nn.Module):
 class DQNAgent:
     def __init__(self):
         # Policy Network
-        # self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
-        # self.target_net = DQN(STATE_SIZE, 4)  # Target_network
-        self.policy_net = DQN(14, 4)  # 14 input features now
-        self.target_net = DQN(14, 4)
+        self.policy_net = DQN(STATE_SIZE, 4)  # 14 input features now
+        self.target_net = DQN(STATE_SIZE, 4)
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.memory = deque(maxlen=MEMORY_SIZE)
         self.epsilon = EPSILON_START
@@ -83,42 +70,6 @@ class DQNAgent:
         # Initialize target network
         self.target_net.load_state_dict(self.policy_net.state_dict())
         self.target_net.eval()
-
-    # def get_state(self, game_state):
-    #     """state representation with full danger detection"""
-    #     head = game_state['snake_head']
-    #     food = game_state['food']
-    #     body = game_state['snake_body']
-    #
-    #     # Normalized grid position
-    #     grid_x = head[0] // BLOCK_SIZE
-    #     grid_y = head[1] // BLOCK_SIZE
-    #
-    #     # Food direction (0-3: up, right, down, left)
-    #     dx, dy = food[0] - head[0], food[1] - head[1]
-    #     food_dir = (1 if dx > 0 else 3) if abs(dx) > abs(dy) else (2 if dy > 0 else 0)
-    #
-    #     # Danger detection in all 4 directions
-    #     danger = 0
-    #     # Check left, right, up, down
-    #     for x, y in [
-    #         (head[0] - BLOCK_SIZE, head[1]),  # Left
-    #         (head[0] + BLOCK_SIZE, head[1]),  # Right
-    #         (head[0], head[1] - BLOCK_SIZE),  # Up
-    #         (head[0], head[1] + BLOCK_SIZE)  # Down
-    #     ]:
-    #         if (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT) or ((x, y) in body):
-    #             danger += 1
-    #
-    #     # Normalized danger level (0-1.0)
-    #     danger_level = danger / 4
-    #
-    #     return torch.FloatTensor([
-    #         grid_x / GRID_WIDTH,
-    #         grid_y / GRID_HEIGHT,
-    #         food_dir / 3,
-    #         danger_level
-    #     ])
 
     def get_state(self, game_state):
         head = game_state['snake_head']
@@ -156,8 +107,8 @@ class DQNAgent:
         danger_down = int(is_danger(down))
 
         # Snake length normalized
-        max_possible_length = (GRID_WIDTH * GRID_HEIGHT) - 1
-        snake_length = len(body) / max_possible_length
+        max_possible_length = GRID_WIDTH * GRID_HEIGHT  # 400
+        snake_length = len(game.snake.body) / max_possible_length
 
         # Build enriched state vector
         state = [
@@ -172,7 +123,7 @@ class DQNAgent:
             dir_down,
             dir_left,
             snake_length,
-            1.0  # normalized snake length
+            1.0  # constant bias term
         ]
 
         return torch.FloatTensor(state)
@@ -240,14 +191,12 @@ agent.target_net.to(device)
 scores = []
 mean_scores = []
 episodes = []
-best_mean_score = float('-inf')
-
+# best_mean_score = float('-inf')
+best_mean_score = 1900  # from previous training
 
 # TODO: Change the file name
 # Model Loading
-# WEIGHT_PATH = 'Current DQN WEIGHTS/snake_dqn.pth' # highest_score 59
-NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Weight_wn_Reward_sys.pth" # higheset score 51
-# NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Best_current_weight.pth.pth" # higheset score 52 ?
+NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Weight_wn_Reward_sys.pth"
 RETRAIN = True
 if os.path.exists(NEW_WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
@@ -280,7 +229,6 @@ def train_model():
             action = agent.act(current_state)
             # print(f"Action: {action}, {type(action)}")
             next_state, reward, done = game.step(action)
-            # reward = reward.to(device)
             next_state_processed = agent.get_state(next_state).to(device)  # get the processed state and move to GPU
 
             # Store experience with negative reward for collisions
@@ -300,7 +248,6 @@ def train_model():
         mean_score = np.mean(scores[-100:])
         mean_scores.append(mean_score)
         episodes.append(episode)
-        best_mean_score = 1900 # from previous training
 
         # Save best model
         if mean_score > best_mean_score:

@@ -7,12 +7,13 @@ pygame.init()
 pygame.display.set_caption("Snake Game")
 
 width, height = 800, 600
+block_size = 20
 screen = pygame.display.set_mode((width, height))
 clock = pygame.time.Clock()
 
 # game objects
-food = Food(width, height)
-scoreboard = Scoreboard()
+food = Food(width, height, block_size)
+scoreboard = Scoreboard(width, height)
 snake = Snake(20, (20, 20))
 
 game_active = True
@@ -37,7 +38,7 @@ while True:
         if game_over and event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 # Reset game state
-                food = Food(width, height)
+                food = Food(width, height, block_size)
                 scoreboard.reset()
                 snake = Snake(20, (20, 20))
                 game_active = True
@@ -77,10 +78,10 @@ while True:
 
         # In the food collision handling section:
         if snake.body[0].colliderect(food.rect):
-            food = Food(width, height)
+            food = Food(width, height, block_size)
             # Ensures food doesn't spawn on snake
             while any(segment.colliderect(food.rect) for segment in snake.body):
-                food = Food(width, height)
+                food = Food(width, height, block_size)
             # scoreboard.result(screen)
             scoreboard.score += 1
             scoreboard.update(screen, fps)

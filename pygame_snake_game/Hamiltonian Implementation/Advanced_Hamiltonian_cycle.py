@@ -8,6 +8,10 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
 from ham_cycle import prim_maze_generator, draw_cycle
 
+from collections import deque
+
+
+
 agent = DQNAgent()
 agent.policy_net.load_state_dict(torch.load("../Current DQN WEIGHTS/Weight_wn_Reward_sys.pth"))
 agent.policy_net.to(device)
@@ -21,8 +25,8 @@ BLOCK_SIZE = 20
 
 print(f"Games width and Height{game.width}, {game.height}")
 
-rows = game.height // BLOCK_SIZE - 15
-cols = game.width // BLOCK_SIZE - 20
+rows = game.height // BLOCK_SIZE - ((game.height // BLOCK_SIZE) // 2)
+cols = game.width // BLOCK_SIZE - ((game.width // BLOCK_SIZE) // 2)
 cycle = prim_maze_generator(rows, cols)
 print("Drawing maze Cycle............")
 draw_cycle(cycle, game.height // BLOCK_SIZE, game.width // BLOCK_SIZE)
@@ -52,6 +56,39 @@ def get_neighbors(pos, grid):
         neighbors.append((row, col+1))
 
     return neighbors
+
+
+def is_tail_reachable(grid, head_pos, snake_body):
+    """
+    Check if the snake's head can still reach its tail.
+    grid: 2D list (1=free, 0=blocked)
+    head_pos: (row, col) of the new head
+    snake_body: list of (row, col) positions of the snake's body (head first)
+    """
+    if not snake_body:
+        return True
+
+    tail_pos = snake_body[-1]
+
+    # Make a copy of the grid so we can "free" the tail
+    temp_grid = [row[:] for row in grid]
+    # Free the tail cell, since it moves away next step
+    tr, tc = tail_pos
+    temp_grid[tr][tc] = 1
+
+    visited = set()
+    queue = deque([head_pos])
+
+    while queue:
+        r, c = queue.popleft()
+        if (r, c) == tail_pos:
+            return True
+        for nr, nc in get_neighbors((r, c), temp_grid):
+            if (nr, nc) not in visited:
+                visited.add((nr, nc))
+                queue.append((nr, nc))
+
+    return False
 def find_safe_path(grid, snake_head, fruit_pos, snake_body):
     # grid: 2D list or dict of cells
     # snake_head: current head pos
@@ -66,7 +103,11 @@ def find_safe_path(grid, snake_head, fruit_pos, snake_body):
     while queue:
         current, path = queue.popleft()
         if current == fruit_pos:
-            return path + [current]
+            # check if path leaves space (tail reachable, or cycle safe)
+            if is_tail_reachable(grid, current, snake_body):
+                return path + [current]
+            else:
+                continue  # keep searching for another safe path
         for neighbor in get_neighbors(current, grid):
             if neighbor not in visited:
                 visited.add(neighbor)

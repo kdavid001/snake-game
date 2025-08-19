@@ -2,7 +2,7 @@ import pygame
 
 
 class Scoreboard:
-    def __init__(self):
+    def __init__(self, width, height):
         try:
             with open("highscore_for_snake_game.txt", "r") as score_file:
                 content = score_file.read().strip()
@@ -14,12 +14,13 @@ class Scoreboard:
             self.high_score = 0
 
         self.score = 0
-        self.font = pygame.font.Font(None, 48)
-        self.high_score_font = pygame.font.Font(None, 48)
+        self.font = pygame.font.Font(None, 25)
+        self.high_score_font = pygame.font.Font(None, 25)
         self.score_text = self.font.render(f"Score: {0}", True, (0, 0, 255))
         self.high_score_text = self.font.render(f"High Score: {0}", True, (0, 0, 255))
-        self.score_rect = self.score_text.get_rect(center=(300, 50))
-        self.high_score_rect = self.high_score_text.get_rect(center=(600, 50))
+        self.score_rect = self.score_text.get_rect(center=((width * 3 // 8), (height // 15)))
+        self.high_score_rect = self.high_score_text.get_rect(center=((width * 3 // 4), (height // 15)))
+
 
     # To update the scoreboard
     def update(self, screen, fps):
@@ -53,3 +54,4 @@ class Scoreboard:
 
     def get_high_score(self):
         return self.high_score
+
