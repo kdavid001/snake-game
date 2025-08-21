@@ -1,13 +1,16 @@
-# play_snake.py
+"""Snake Playing on pure AI - DDQN"""
+import os
 import torch
 import pygame
 import sys
-from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
-# from Hamiltonian_cycle import generate_hamiltonian_cycle, get_cycle_action
+
+sys.path.append(os.path.abspath("../RL_agents(Training)"))
+from RL_Agent_with_DDQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
+
 
 # Setup
 agent = DQNAgent()
-agent.policy_net.load_state_dict(torch.load("../pygame_snake_game/WEIGHTS/Current DQN WEIGHTS/Best_current_weight.pth"))
+agent.policy_net.load_state_dict(torch.load("../WEIGHTS/Current DQN WEIGHTS/Best_current_weight.pth"))
 agent.policy_net.to(device)
 agent.policy_net.eval()
 agent.epsilon = 0.0  # Greedy play
@@ -17,16 +20,6 @@ screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
 BLOCK_SIZE = 20
-
-
-# ham_cycle = generate_hamiltonian_cycle(game.width, game.height)
-
-# print(type(len(game.snake.body)))
-# def should_fallback(snake, game):
-#     # Fallback if snake length is 75% of total grid cells
-#     threshold = (game.width * game.height) * 0.0
-#     return len(snake.body) >= threshold
-#
 
 def play_game():
     for episode in range(10):
@@ -40,13 +33,6 @@ def play_game():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-            # snake_head_pos = (
-            #     game.snake.body[0].x // BLOCK_SIZE,
-            #     game.snake.body[0].y // BLOCK_SIZE
-            # )
-            # if should_fallback(game.snake, game):
-            #     action = get_cycle_action(snake_head_pos, ham_cycle, game.width, game.height)
-            # else:
             action = agent.act(current_state)
             next_state, reward, done = game.step(action)
             current_state = agent.get_state(next_state).to(device)

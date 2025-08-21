@@ -1,3 +1,5 @@
+"""Not in use"""
+
 from prims_algorithm import PrimsAlgorithm
 import time
 import random

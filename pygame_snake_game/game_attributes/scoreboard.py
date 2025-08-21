@@ -4,12 +4,12 @@ import pygame
 class Scoreboard:
     def __init__(self, width, height):
         try:
-            with open("highscore_for_snake_game.txt", "r") as score_file:
+            with open("../highscore_for_snake_game.txt", "r") as score_file:
                 content = score_file.read().strip()
                 self.high_score = int(content) if content else 0
         except FileNotFoundError:
             # if File doesn't exist yet, creates with score 0
-            with open("highscore_for_snake_game.txt", "w") as score_file:
+            with open("../highscore_for_snake_game.txt", "w") as score_file:
                 score_file.write("0")
             self.high_score = 0
 
@@ -40,7 +40,7 @@ class Scoreboard:
     def reset(self):
         if self.score > int(self.high_score):
             self.high_score = self.score
-            with open("highscore_for_snake_game.txt", 'w') as score_file:
+            with open("../highscore_for_snake_game.txt", 'w') as score_file:
                 score_file.write(str(self.high_score))  # Save as string
         self.score = 0  # Reset the current score
 

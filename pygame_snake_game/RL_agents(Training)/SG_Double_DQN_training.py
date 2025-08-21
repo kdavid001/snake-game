@@ -1,3 +1,5 @@
+""" SG - Small Grid (400 X 400) """
+
 import numpy as np
 import random
 import pygame
@@ -7,6 +9,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from collections import deque
+
+sys.path.append(os.path.abspath("../game_attributes"))
 from snake_game import SnakeGame
 
 # Game Constants
@@ -33,8 +37,10 @@ clock = pygame.time.Clock()
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
 
+
 class DQN(nn.Module):
     """Deep Q-Network with state representation"""
+
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
         # Feed-forward
@@ -45,6 +51,7 @@ class DQN(nn.Module):
             nn.ReLU(),
             nn.Linear(256, output_size)
         )
+
     def forward(self, x):
         return self.fc(x)
 
@@ -86,7 +93,7 @@ class DQNAgent:
         # Danger detection (binary)
         def is_danger(pos):
             x, y = pos
-            return (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT or (x, y) in body)
+            return x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT or (x, y) in body
 
         left = (head[0] - BLOCK_SIZE, head[1])
         right = (head[0] + BLOCK_SIZE, head[1])
@@ -182,14 +189,11 @@ agent.target_net.to(device)
 scores = []
 mean_scores = []
 episodes = []
-best_mean_score = 1700  # from previous training
+best_mean_score = 1700  # from Last training
 
 # TODO: Change the file name
 # Model Loading
-# WEIGHT_PATH = 'Current DQN WEIGHTS/snake_dqn.pth' # highest_score 59
-# NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Weight_wn_Reward_sys.pth" # higheset score 51
-NEW_WEIGHT_PATH = "Current DQN WEIGHTS/400x400_state_space(environment).pth" # higheset score 51
-# NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Best_current_weight.pth.pth" # higheset score 52 ?
+NEW_WEIGHT_PATH = "../WEIGHTS/Current DQN WEIGHTS/400x400_state_space(environment).pth"
 RETRAIN = True
 
 if os.path.exists(NEW_WEIGHT_PATH):
@@ -215,8 +219,6 @@ def train_model():
         while not done:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    # torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
-                    # print("Saved weights in .pth")
                     pygame.quit()
                     sys.exit()
 
@@ -224,7 +226,7 @@ def train_model():
             # print(f"Action: {action}, {type(action)}")
             next_state, reward, done = game.step(action)
             # reward = reward.to(device)
-            next_state_processed = agent.get_state(next_state).to(device)  # get the processed state and move to GPU
+            next_state_processed = agent.get_state(next_state).to(device)
 
             # Store experience with negative reward for collisions
             agent.remember(current_state, action, reward, next_state_processed, done)
@@ -249,6 +251,19 @@ def train_model():
             best_mean_score = mean_score
             torch.save(agent.policy_net.state_dict(), NEW_WEIGHT_PATH)
             print("Saved new weights")
+
+        # Plotting the Scores overtime
+        # if episode % 20 == 0 and episode != 0:
+        #     from matplotlib import pyplot as plt
+        #     plt.figure(figsize=(12, 6))
+        #     plt.plot(episodes, scores, label="Raw Score per Episode", alpha=0.4)
+        #     plt.plot(episodes, mean_scores, label="Mean Score (last 100)", linewidth=2)
+        #     plt.title("DQN Training Progress")
+        #     plt.xlabel("Episode")
+        #     plt.ylabel("Score")
+        #     plt.legend()
+        #     plt.grid(True)
+        #     plt.show()
 
         current_score = game.get_state()["score"]
         high_score = game.get_state()["highscore"]

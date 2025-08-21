@@ -1,5 +1,5 @@
 """
-This is just a copy of the RL_Agent_with_DQN.py file but
+This is just a copy of the RL_Agent_with_DDQN.py file but
 with advanced Observation space using CNNs
 """
 import numpy as np

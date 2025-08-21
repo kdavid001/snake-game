@@ -272,13 +272,6 @@ def train_model():
         print(f"Ep {episode:04d} | Score: {total_reward:3.0f} | ε: {agent.epsilon:.3f} | Mean: {mean_score:.1f} | "
               f"highscore : {high_score} | current_score: {current_score}")
 
-    # Final Save at the 5000 episode
-    # torch.save(agent.policy_net.state_dict(), WEIGHT_PATH)
-
-    # Note Csv files of the weights are large
-    # Save to CSV
-    # save_weights_to_csv(agent.policy_net.state_dict(), "csv files/DQN-Weights.csv")
-    # print("Saved weights to scv file")
     pygame.quit()
 
 

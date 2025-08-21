@@ -5,9 +5,13 @@ import sys
 import pygame
 import torch
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.append(os.path.abspath("../game_attributes"))
 from gameover import GameOver
-from SG_DQN_training import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
+
+sys.path.append(os.path.abspath("../RL_agents(Training)"))
+from SG_Double_DQN_training import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
+
+sys.path.append(os.path.abspath("../Hamiltonian_Implementation"))
 from ham_cycle import (prim_maze_generator, draw_cycle, find_safe_path,
                        convert_next_cell_to_ham_action, convert_next_cell_to_action, rotate_cycle)
 

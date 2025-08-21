@@ -391,12 +391,6 @@ def draw_cycle(cycle, height, width):
     #     plt.tight_layout()
     #     plt.show()
 
-    # if __name__ == '__main__':
-    """ Width x Height """
-    # cycle = prim_maze_generator(600 // 40, 800 // 40)
-    # print(cycle)
-    # width, height = 40, 30
-
 
 def get_neighbors(pos, grid):
     """
@@ -502,6 +496,7 @@ def convert_next_cell_to_ham_action(next_cell, snake_head_pos):
         action = 0  # up
     return action
 
+
 def rotate_cycle(cycle, head_pos):
     if head_pos in cycle:
         idx = cycle.index(head_pos)
@@ -509,3 +504,10 @@ def rotate_cycle(cycle, head_pos):
     else:
         raise ValueError("Head position not found in cycle")
 
+
+if __name__ == '__main__':
+    """ Width x Height """
+    cycle = prim_maze_generator(600 // 40, 800 // 40)
+    draw_cycle(cycle,height=600//40, width=800//40)
+    print(cycle)
+    width, height = 40, 30

@@ -9,9 +9,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-
+sys.path.append(os.path.abspath("../game_attributes"))
 from snake_game import SnakeGame
-from collections import deque
 
 import cv2
 
@@ -44,18 +43,6 @@ clock = pygame.time.Clock()
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
 
-
-# csv save function
-def save_weights_to_csv(state_dict, path):
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, mode='w', newline='') as file:
-        writer = csv.writer(file)
-        for key, weight in state_dict.items():
-            writer.writerow([key])
-            flat_weights = weight.flatten().tolist()
-            writer.writerow(flat_weights)
-            writer.writerow([])
-    print(f"Weights saved to {path}")
 
 
 # TODO: step 2 - Noisy Layer
@@ -223,7 +210,6 @@ class CNN_DQN(nn.Module):
 
 
 # TODO: Implement a PrioritizedReplayBuffer
-
 class PrioritizedReplayBuffer:
     """
     I found a better PrioritizedReplayBuffer class that is more efficient but will try it later
@@ -273,8 +259,6 @@ class PrioritizedReplayBuffer:
 
 
 """This is the Dueling DQN"""
-
-
 # class DQN(nn.Module):
 #     """Dueling Deep Q-Network with state representation"""
 #     def __init__(self, input_size, output_size):
@@ -714,7 +698,8 @@ best_mean_score = float('-inf')
 
 # TODO: Change the file name
 # Model Loading
-WEIGHT_PATH = 'RAINBOW WEIGHTS/CNN_weights_For_RW.pth'
+WEIGHT_PATH = '../WEIGHTS/RAINBOW_WEIGHTS/CNN_weights_For_RW.pth'
+
 RETRAIN = True
 if os.path.exists(WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
@@ -726,7 +711,7 @@ if os.path.exists(WEIGHT_PATH):
     print("Loaded saved weights")
 
 # Training Loop
-for episode in range(5000):
+for episode in range(2000):
     frame = agent.get_state()
     current_state = agent.stack_frames(frame).unsqueeze(0).to(device)
     print("Current state shape:", current_state.shape)

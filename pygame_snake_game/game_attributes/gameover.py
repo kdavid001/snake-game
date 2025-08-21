@@ -1,8 +1,7 @@
 import pygame
-from scoreboard import Scoreboard
 
 
-class GameOver(Exception):
+class GameOver:
     def __init__(self, width, height):
         self.width = width
         self.height = height

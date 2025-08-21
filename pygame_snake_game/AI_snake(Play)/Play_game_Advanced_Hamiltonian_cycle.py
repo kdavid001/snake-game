@@ -1,16 +1,18 @@
-# play_snake.py
+"""Smame but for Bigger Grid 800 X 600 """
+"""Still working on this for Improvement """
+
 import torch
 import pygame
 import sys
 import sys, os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
-from ham_cycle import prim_maze_generator, draw_cycle
-
 from collections import deque
 
+sys.path.append(os.path.abspath("../RL_agents(Training)"))
+from RL_Agent_with_DDQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
 
+sys.path.append(os.path.abspath("../Hamiltonian_Implementation"))
+from ham_cycle import (prim_maze_generator, draw_cycle, find_safe_path,
+                       convert_next_cell_to_ham_action, convert_next_cell_to_action, rotate_cycle, is_tail_reachable)
 
 agent = DQNAgent()
 agent.policy_net.load_state_dict(torch.load("../WEIGHTS/Current DQN WEIGHTS/Weight_wn_Reward_sys.pth"))
@@ -31,126 +33,12 @@ cycle = prim_maze_generator(rows, cols)
 print("Drawing maze Cycle............")
 draw_cycle(cycle, game.height // BLOCK_SIZE, game.width // BLOCK_SIZE)
 
-def get_neighbors(pos, grid):
-    """
-    Return all valid neighbors of `pos` in the grid that are walkable.
-    pos: (row, col) tuple
-    grid: 2D list or dict representing free cells (1 = free, 0 = blocked)
-    """
-    neighbors = []
-    rows = len(grid)
-    cols = len(grid[0])
-    row, col = pos
-
-    # Up
-    if row > 0 and grid[row-1][col]:
-        neighbors.append((row-1, col))
-    # Down
-    if row < rows-1 and grid[row+1][col]:
-        neighbors.append((row+1, col))
-    # Left
-    if col > 0 and grid[row][col-1]:
-        neighbors.append((row, col-1))
-    # Right
-    if col < cols-1 and grid[row][col+1]:
-        neighbors.append((row, col+1))
-
-    return neighbors
-
-
-def is_tail_reachable(grid, head_pos, snake_body):
-    """
-    Check if the snake's head can still reach its tail.
-    grid: 2D list (1=free, 0=blocked)
-    head_pos: (row, col) of the new head
-    snake_body: list of (row, col) positions of the snake's body (head first)
-    """
-    if not snake_body:
-        return True
-
-    tail_pos = snake_body[-1]
-
-    # Make a copy of the grid so we can "free" the tail
-    temp_grid = [row[:] for row in grid]
-    # Free the tail cell, since it moves away next step
-    tr, tc = tail_pos
-    temp_grid[tr][tc] = 1
-
-    visited = set()
-    queue = deque([head_pos])
-
-    while queue:
-        r, c = queue.popleft()
-        if (r, c) == tail_pos:
-            return True
-        for nr, nc in get_neighbors((r, c), temp_grid):
-            if (nr, nc) not in visited:
-                visited.add((nr, nc))
-                queue.append((nr, nc))
-
-    return False
-def find_safe_path(grid, snake_head, fruit_pos, snake_body):
-    # grid: 2D list or dict of cells
-    # snake_head: current head pos
-    # fruit_pos: target fruit
-    # snake_body: occupied positions
-    # returns a list of grid positions
-    from collections import deque
-
-    visited = set(snake_body)
-    queue = deque([(snake_head, [])])
-
-    while queue:
-        current, path = queue.popleft()
-        if current == fruit_pos:
-            # check if path leaves space (tail reachable, or cycle safe)
-            if is_tail_reachable(grid, current, snake_body):
-                return path + [current]
-            else:
-                continue  # keep searching for another safe path
-        for neighbor in get_neighbors(current, grid):
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append((neighbor, path + [current]))
-    return None  # no path found
-
 # Setup
 def should_fallback(snake, game):
-    # Fallback if snake length is 75% of total grid cells
     short_threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.03
     long_threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.08
     return short_threshold, long_threshold
 
-
-def rotate_cycle(cycle, head_pos):
-    if head_pos in cycle:
-        idx = cycle.index(head_pos)
-        return cycle[idx:] + cycle[:idx]
-    else:
-        raise ValueError("Head position not found in cycle")
-
-def convert_next_cell_to_action(next_cell, snake_head_pos):
-    """For BFS"""
-    if next_cell[0] < snake_head_pos[0]:
-        action = 0  # up
-    elif next_cell[0] > snake_head_pos[0]:
-        action = 1  # down
-    elif next_cell[1] < snake_head_pos[1]:
-        action = 2  # left
-    else:
-        action = 3  # right
-    return action
-
-def convert_next_cell_to_ham_action(next_cell, snake_head_pos):
-    if next_cell[0] > snake_head_pos[0]:
-        action = 3  # right
-    elif next_cell[0] < snake_head_pos[0]:
-        action = 2  # left
-    elif next_cell[1] > snake_head_pos[1]:
-        action = 1  # down
-    else:
-        action = 0  # up
-    return action
 
 def play_game(cycle):
     for episode in range(20):

@@ -1,5 +1,6 @@
-import random
-
+"""
+Not in use!!!!
+"""
 import matplotlib.pyplot as plt
 
 
@@ -29,7 +30,7 @@ def create_base_cycle(width, height):
     else:
         cycle.extend((0, y) for y in reversed(range(height - 1)))
 
-        cycle.append(cycle[0])  # Close the loop
+        cycle.append(cycle[0])
     return cycle
 
 

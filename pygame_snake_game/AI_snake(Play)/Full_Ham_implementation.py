@@ -1,12 +1,13 @@
-# play_snake.py
+""" Full Ham_implementation with a little BFS """
 import torch
 import pygame
 import sys
 import sys, os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from RL_Agent_with_DQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
-from ham_cycle import prim_maze_generator, draw_cycle
+sys.path.append(os.path.abspath("../RL_agents(Training)"))
+from RL_Agent_with_DDQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
+sys.path.append(os.path.abspath("../Hamiltonian_Implementation"))
+from ham_cycle import prim_maze_generator, draw_cycle, find_safe_path, rotate_cycle
 
 agent = DQNAgent()
 agent.policy_net.load_state_dict(torch.load("../WEIGHTS/Current DQN WEIGHTS/Weight_wn_Reward_sys.pth"))
@@ -28,42 +29,12 @@ print("Drawing maze Cycle............")
 draw_cycle(cycle, game.height // BLOCK_SIZE, game.width // BLOCK_SIZE)
 
 
-def find_safe_path(grid, snake_head, fruit_pos, snake_body):
-    # grid: 2D list or dict of cells
-    # snake_head: current head pos
-    # fruit_pos: target fruit
-    # snake_body: occupied positions
-    # returns a list of grid positions
-    from collections import deque
-
-    visited = set(snake_body)
-    queue = deque([(snake_head, [])])
-
-    while queue:
-        current, path = queue.popleft()
-        if current == fruit_pos:
-            return path + [current]
-        for neighbor in get_neighbors(current, grid):
-            if neighbor not in visited:
-                visited.add(neighbor)
-                queue.append((neighbor, path + [current]))
-    return None  # no path found
-
 # Setup
 def should_fallback(snake, game):
     # Fallback if snake length is 75% of total grid cells
-    threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.04
+    threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.0
     game.mode = "cycle"
     return len(snake.body) >= threshold
-
-
-def rotate_cycle(cycle, head_pos):
-    if head_pos in cycle:
-        idx = cycle.index(head_pos)
-        return cycle[idx:] + cycle[:idx]
-    else:
-        raise ValueError("Head position not found in cycle")
-
 
 def play_game(cycle):
     for episode in range(10):

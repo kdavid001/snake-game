@@ -1,13 +1,18 @@
+import os
+import sys
+
 import numpy as np
 import random
 import pygame
 import sys
 import math
 import matplotlib.pyplot as plt
+
+sys.path.append(os.path.abspath("../game_attributes"))
 from snake_game import SnakeGame
 
 # Game Constants
-WIDTH, HEIGHT = 800, 600
+WIDTH, HEIGHT = 400, 400
 BLOCK_SIZE = 20
 GRID_WIDTH = WIDTH // BLOCK_SIZE
 GRID_HEIGHT = HEIGHT // BLOCK_SIZE
@@ -33,20 +38,11 @@ EPISODES = 5000
 TRAINING_MODE = True
 RENDER_EVERY = 1
 
-# plt.ion()
-# fig, ax = plt.subplots(figsize=(10, 5))
-# line_scores, = ax.plot([], [], 'b-', alpha=0.3, label='Score')
-# line_mean, = ax.plot([], [], 'r-', label='Mean (100)')
-# ax.set_title('Snake Training Progress')
-# ax.set_xlabel('Episodes')
-# ax.set_ylabel('Score')
-# ax.legend()
-# ax.set_ylim(0, None)
-# plt.show(block=False)
-
 # Tracking
 scores = []
 mean_scores = []
+episodes = []
+best_mean_score = float("-inf")
 
 
 def get_state(game_state):
@@ -67,7 +63,7 @@ def get_state(game_state):
                  (head[0] + BLOCK_SIZE, head[1])]:
         if (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT) or ((x, y) in body):
             danger += 1
-    danger_level = min(danger, 2) # I originally used 3 but it didnt work so 2 is the best.
+    danger_level = min(danger, 2)  # I originally used 3 but it didnt work so 2 is the best.
 
     return grid_x, grid_y, food_dir, danger_level
 
@@ -77,25 +73,7 @@ def choose_action(state):
     return random.choice(ACTIONS) if random.random() < EPSILON else ACTIONS[np.argmax(Q[state])]
 
 
-# def update_plot():
-#     """Efficiently update the existing figure"""
-#     line_scores.set_data(range(len(scores)), scores)
-#     line_mean.set_data(range(len(mean_scores)), mean_scores)
-#
-#     # Update text annotations
-#     for text in ax.texts:
-#         text.remove()
-#     ax.text(len(scores) - 1, scores[-1], f'{scores[-1]}', color='blue')
-#     ax.text(len(mean_scores) - 1, mean_scores[-1], f'{mean_scores[-1]:.1f}', color='red')
-#
-#     ax.relim()
-#     ax.autoscale_view()
-#     fig.canvas.draw()
-#     fig.canvas.flush_events()
-#     plt.pause(0.001)
-
-
-# Main Training Loop
+# Training Loop
 for episode in range(EPISODES):
     state = game.reset()
     total_reward = 0
@@ -105,7 +83,7 @@ for episode in range(EPISODES):
     while not done:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                np.save("Current_q_TABLE/snake_q_table.npy", Q)
+                np.save("../WEIGHTS/Current_q_TABLE/snake_q_table.npy", Q)
                 print("Q-table saved")
                 pygame.quit()
                 sys.exit()
@@ -134,19 +112,19 @@ for episode in range(EPISODES):
 
     # Store results
     scores.append(total_reward)
-    mean_scores.append(np.mean(scores[-100:]))
+    mean_score = round(np.mean(scores[-100:]), 3)
+    mean_scores.append(mean_score)
+    episodes.append(episode)
+
+    # Save best model
+    if mean_score > best_mean_score:
+        best_mean_score = mean_score
+        np.save("../WEIGHTS/Current_q_TABLE/snake_q_table.npy", Q)
+        print("Q-table saved!")
     EPSILON = max(MIN_EPSILON, EPSILON * EPSILON_DECAY)
 
-    # # Update plot every 10 episodes
-    # if episode % 10 == 0:
-    #     update_plot()
-
-    # consider saving this in a dictionary or file so it can be plotted
+    # TODO: Try saving this in a dictionary or file so it can be plotted.
     print(f"Ep {episode:04d} | Rewards: {total_reward:3.0f} | ε: {EPSILON:.3f} | Mean: {mean_scores[-1]:.1f}")
 
-# Cleanup
-np.save("Current_q_TABLE/snake_q_table.npy", Q)
-print("Q-table saved")
-plt.ioff()
 plt.show()
 pygame.quit()

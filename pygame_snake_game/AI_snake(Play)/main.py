@@ -1,3 +1,5 @@
+import sys, os
+sys.path.append(os.path.abspath("../game_attributes"))
 import pygame
 from food import Food
 from scoreboard import Scoreboard
