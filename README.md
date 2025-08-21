@@ -26,19 +26,40 @@ The implementation uses:
 
 ## Project Structure
 ```
-pygame_snake_game/
-├── Play_game(Small_grid).py      # Play Snake on a 400x400 grid with RL + fallback
-├── Full_Ham_implementation.py    # Snake with Hamiltonian Cycle strategy
-├── RL_Agent_with_DQN.py          # DQN agent implementation
-├── SG_Double_DQN_training.py     # Double DQN training on smaller grid
-├── RL_model_optimizing_Q.py      # Optimisation for Q-learning
-├── Rl_model.py                   # Pure Q-learning baseline
-├── gameover.py                   # GameOver screen logic
-├── snake.py, food.py, scoreboard.py, snake_game.py   # Core game logic
-├── old_q_table_files/            # Archived Q-tables
-├── weight_file_for_DQN/          # Saved DQN model weights
-├── WEIGHTS/Current_q_TABLE/      # Current training tables/weights
-└── plots/                        # Cycle visualisations from Hamiltonian generator
+**pygame_snake_game**/
+├── **pygame_snake_game**
+    ├── **AI_Snake**(Play)  
+        ├── Full_Ham_implementation.py                  # Snake with Hamiltonian Cycle strategy
+        ├── main.py                                     # Human Playable Game
+        ├── Play_game(Small_grid).py                    # Play Snake on a 400x400 grid with RL + fallback
+        ├── Play_game(Snake AI).py                      # Purely Snake AI with Double-Deep Q Networks
+        └── Play_game_Advanced_Hamiltonian_cycle.py     # Play Snake on a 800x600 grid with RL + fallback
+    ├── **game_attributes**
+        ├── gameover.py                                       # GameOver screen logic
+        └── snake.py, food.py, scoreboard.py, snake_game.py   # Core game logic
+    ├── **Hamiltonian_Implementation**
+        ├── ham_cycle.py
+        ├── Hamiltonian_cycle.py
+        ├── nan.py
+        └── prims_algorithm.py
+    ├── **RL_agents(Training)**
+        ├── Rainbow-RL.py                     # Original RL code with just Q-Learning.
+        ├── Rl_model.py                       # Pure Q-learning baseline
+        ├── RL_Agent_with_DDQN_CNN.py         # Double-DQN agent implementation with a 7x7 or 5x5 Grid CNN
+        ├── RL_model_optimizing_Q.py          # Optimisation for Q-learning
+        └── SG_Double_DDQN_training.py        # Double DQN training on smaller grid
+    └── **WEIGHTS**
+    ├── old_q_table_files/            # Archived Q-tables
+    ├── Current_q_TABLE/              # Current training tables/weights
+    ├── RAINBOW_WEIGHTS/              # Training Weights for Rainbow Implementation
+    └── weight_file_for_DQN/          # Saved DDQN model weights
+├── **pygame_snake_game_gg_colab**        # This is a folder made specifically to train using google colab GPU for more complete algorithm-> work in progress
+└── **Turtle_snake-game**                 # Turtle-game Version
+ 
+
+
+
+
 ```
 
 ---
@@ -88,7 +109,17 @@ python Play_game(Small_grid).py       # Double DQN on smaller grid
 python Full_Ham_implementation.py     # With Hamiltonian fallback
 python Rl_model.py                    # Tabular Q-learning baseline
 ```
-
+## Training Results
+| Model / Strategy                  | Highest score | Highest Mean Score | Notes |
+|-----------------------------------|---------------|--------------------|-------|
+| `Current DQN WEIGHTS/snake_dqn.pth` | 59            | N/A                | Baseline DQN training run |
+| `Current DQN WEIGHTS/Weight_wn_Reward_sys.pth` | 67            | 1900               | Improved with reward shaping |
+| `Current DQN WEIGHTS/Best_current_weight.pth.pth` | 52            | 1500               | Considered best performing DQN so far |
+| `CNN_weights(5x5).pth`            | 32            | 1000               | CNN filter size 5x5 |
+| `CNN_weights(7x7).pth`            | 16            | 600                | CNN filter size 7x7 |
+| Hamiltonian Cycle                  | ∞             | ∞                  | Survives indefinitely once path is set |
+| BFS – Breadth First Search         | 150           | N/A                | Reliable but not optimal |
+| SG – 400×400 Grid                  | 54            | 1700               | Double DQN on small grid |
 # Training Videos
 
 
