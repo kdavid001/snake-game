@@ -55,11 +55,6 @@ The implementation uses:
     └── weight_file_for_DQN/          # Saved DDQN model weights
 ├── **pygame_snake_game_gg_colab**        # This is a folder made specifically to train using google colab GPU for more complete algorithm-> work in progress
 └── **Turtle_snake-game**                 # Turtle-game Version
- 
-
-
-
-
 ```
 
 ---
