@@ -1,24 +1,29 @@
+"""
+This is just a copy of the RL_Agent_with_DQN.py file but
+with advanced Observation space using CNNs
+"""
 import numpy as np
 import random
 import pygame
 import sys
 import os
-import math
 import torch
 import torch.nn as nn
 import torch.optim as optim
 from collections import deque
+sys.path.append(os.path.abspath("../game_attributes"))
 from snake_game import SnakeGame
-import csv
 
 # Game Constants
-WIDTH, HEIGHT = 400, 400
+WIDTH, HEIGHT = 800, 600
 BLOCK_SIZE = 20
 GRID_WIDTH = WIDTH // BLOCK_SIZE
 GRID_HEIGHT = HEIGHT // BLOCK_SIZE
 
 # Neural Network Parameters
-STATE_SIZE = 13
+# STATE_SIZE = 4  # grid_x, grid_y, food_dir, danger_level
+# STATE_SIZE = 39  # 14 + local grid (5 x 5)
+STATE_SIZE = 59  # 10 + local grid (7 x 7) removed the danger setup
 BATCH_SIZE = 128
 MEMORY_SIZE = 10000
 GAMMA = 0.95
@@ -28,37 +33,44 @@ EPSILON_DECAY = 0.995
 LEARNING_RATE = 0.001
 
 # Initialize Game
-game = SnakeGame(width=WIDTH, height=HEIGHT, mode="rl")
+game = SnakeGame(width=WIDTH, height=HEIGHT,mode="rl")
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
 
 device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
 print(f"Using device: {device}")
-
-
 class DQN(nn.Module):
     """Deep Q-Network with state representation"""
 
     def __init__(self, input_size, output_size):
         super(DQN, self).__init__()
-        # Feed-forward
+        self.cnn = nn.Sequential(
+            nn.Conv2d(1, 16, kernel_size=3, stride=1, padding=1),  # input: 1x7x7 → output: 16x5x5
+            nn.ReLU(),
+            nn.Conv2d(16, 32, kernel_size=3, stride=1, padding=1),  # output: 32x7x7
+            nn.ReLU(),
+            nn.Flatten(),  # 32 * 7 * 7 = 800
+        )
         self.fc = nn.Sequential(
-            nn.Linear(input_size, 256),
+            nn.Linear(1568 + (input_size - 49), 128),  # 49 grid + rest = input_size
             nn.ReLU(),
-            nn.Linear(256, 256),
-            nn.ReLU(),
-            nn.Linear(256, output_size)
+            nn.Linear(128, output_size)
         )
 
     def forward(self, x):
-        return self.fc(x)
+        # Split into grid and flat part
+        grid = x[:, -49:].view(-1, 1, 7, 7)  # last 49 values as 7x7 grid
+        other = x[:, :-49]
+        grid_features = self.cnn(grid)
+        combined = torch.cat((grid_features, other), dim=1)
+        return self.fc(combined)
 
 
 class DQNAgent:
     def __init__(self):
         # Policy Network
-        self.policy_net = DQN(STATE_SIZE, 4)  # 14 input features now
-        self.target_net = DQN(STATE_SIZE, 4)
+        self.policy_net = DQN(STATE_SIZE, 4)  # Policy_Network
+        self.target_net = DQN(STATE_SIZE, 4)  # Target_network
         self.optimizer = optim.Adam(self.policy_net.parameters(), lr=LEARNING_RATE)
         self.memory = deque(maxlen=MEMORY_SIZE)
         self.epsilon = EPSILON_START
@@ -71,57 +83,56 @@ class DQNAgent:
     def get_state(self, game_state):
         head = game_state['snake_head']
         food = game_state['food']
-        body = game_state['snake_body']
-        direction = game_state['direction']  # Assume direction is a tuple like (dx, dy)
+        body = set(game_state['snake_body'])
+        direction = game_state['direction']
 
-        # Normalized head position
+        # Normalize head and food position
         grid_x = head[0] / WIDTH
         grid_y = head[1] / HEIGHT
-
-        # Relative food direction (normalized)
         dx = (food[0] - head[0]) / WIDTH
         dy = (food[1] - head[1]) / HEIGHT
 
-        # Snake direction (one-hot encoded)
+        # Direction one-hot
         dir_up = 1 if direction == (0, -BLOCK_SIZE) else 0
         dir_right = 1 if direction == (BLOCK_SIZE, 0) else 0
         dir_down = 1 if direction == (0, BLOCK_SIZE) else 0
         dir_left = 1 if direction == (-BLOCK_SIZE, 0) else 0
 
-        # Danger detection (binary)
-        def is_danger(pos):
-            x, y = pos
-            return (x < 0 or x >= WIDTH or y < 0 or y >= HEIGHT or (x, y) in body)
+        # Danger checks
+        # danger_left = int((head[0] - BLOCK_SIZE, head[1]) in body or head[0] - BLOCK_SIZE < 0)
+        # danger_right = int((head[0] + BLOCK_SIZE, head[1]) in body or head[0] + BLOCK_SIZE >= WIDTH)
+        # danger_up = int((head[0], head[1] - BLOCK_SIZE) in body or head[1] - BLOCK_SIZE < 0)
+        # danger_down = int((head[0], head[1] + BLOCK_SIZE) in body or head[1] + BLOCK_SIZE >= HEIGHT)
 
-        left = (head[0] - BLOCK_SIZE, head[1])
-        right = (head[0] + BLOCK_SIZE, head[1])
-        up = (head[0], head[1] - BLOCK_SIZE)
-        down = (head[0], head[1] + BLOCK_SIZE)
+        # Snake length (normalized)
+        max_len = (GRID_WIDTH * GRID_HEIGHT)
+        snake_len_norm = len(body) / max_len
 
-        danger_left = int(is_danger(left))
-        danger_right = int(is_danger(right))
-        danger_up = int(is_danger(up))
-        danger_down = int(is_danger(down))
+        # 5x5 local grid: 1 if wall or body, 0 if free
+        half_window = 3
+        local_grid = []
+        for dy_offset in range(-half_window, half_window + 1):
+            for dx_offset in range(-half_window, half_window + 1):
+                check_x = head[0] + dx_offset * BLOCK_SIZE
+                check_y = head[1] + dy_offset * BLOCK_SIZE
+                if (check_x < 0 or check_x >= WIDTH or check_y < 0 or check_y >= HEIGHT
+                        or (check_x, check_y) in body):
+                    local_grid.append(1.0)
+                else:
+                    local_grid.append(0.0)
 
-        # Snake length normalized
-        max_possible_length = (GRID_WIDTH * GRID_HEIGHT)
-        snake_length = len(body) // max_possible_length
-
-        # Build enriched state vector
+        # Final state vector
+        # I removed the danger checker because the grid does that already.
+        # TODO: Remove the Constant bias term and change the state-Size to match the state vector
+        # TODO: This will affect the .pth file so you'd have to retrain a new file
         state = [
-            grid_x, grid_y,  # normalized head position
-            dx, dy,  # relative food position
-            danger_left,
-            danger_right,
-            danger_up,
-            danger_down,
-            dir_up,
-            dir_right,
-            dir_down,
-            dir_left,
-            snake_length,
-            # 1.0 # constant bias term
-        ]
+                    grid_x, grid_y,
+                    dx, dy,
+                    # danger_left, danger_right, danger_up, danger_down,
+                    dir_up, dir_right, dir_down, dir_left,
+                    snake_len_norm,
+                    1.0  # constant bias term
+                ] + local_grid
 
         return torch.FloatTensor(state)
 
@@ -133,7 +144,7 @@ class DQNAgent:
             return random.randint(0, 3)
 
         with torch.no_grad():
-            q_values = self.policy_net(state)
+            q_values = self.policy_net(state.unsqueeze(0))  # Make it shape (1, STATE_SIZE)
             return q_values.argmax().item()
 
     def learn(self):
@@ -144,7 +155,7 @@ class DQNAgent:
         # unpacks them into separate lists
         states, actions, rewards, next_states, dones = zip(*batch)
 
-        # Converts to tensors and move to GPU
+        # Convert to tensors and move to GPU
         states = torch.stack(states).to(device)
         actions = torch.LongTensor(actions).to(device)
         rewards = torch.FloatTensor(rewards).to(device)
@@ -187,16 +198,12 @@ agent.target_net.to(device)
 scores = []
 mean_scores = []
 episodes = []
-best_mean_score = 1700  # from previous training
+best_mean_score = float('-inf')
 
 # TODO: Change the file name
 # Model Loading
-# WEIGHT_PATH = 'Current DQN WEIGHTS/snake_dqn.pth' # highest_score 59
-# NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Weight_wn_Reward_sys.pth" # higheset score 51
-NEW_WEIGHT_PATH = "Current DQN WEIGHTS/400x400_state_space(environment).pth" # higheset score 51
-# NEW_WEIGHT_PATH = "Current DQN WEIGHTS/Best_current_weight.pth.pth" # higheset score 52 ?
+NEW_WEIGHT_PATH = "../WEIGHTS/Current DQN WEIGHTS/CNN_weights(7x7).pth"
 RETRAIN = True
-
 if os.path.exists(NEW_WEIGHT_PATH):
     # soon In pytouch, this code below would not be able to run without this {weights_only = True}, check for the
     # updates overtime.
@@ -211,7 +218,7 @@ if os.path.exists(NEW_WEIGHT_PATH):
 def train_model():
     global best_mean_score
 
-    for episode in range(2000):
+    for episode in range(3000):
         state = game.reset()
         current_state = agent.get_state(state).to(device)
         total_reward = 0
@@ -226,7 +233,6 @@ def train_model():
                     sys.exit()
 
             action = agent.act(current_state)
-            # print(f"Action: {action}, {type(action)}")
             next_state, reward, done = game.step(action)
             # reward = reward.to(device)
             next_state_processed = agent.get_state(next_state).to(device)  # get the processed state and move to GPU
@@ -241,14 +247,14 @@ def train_model():
             # Rendering
             game.render(screen, clock.get_fps())
             pygame.display.flip()
-            clock.tick(60)  # Reduce speed for better observation
+            clock.tick(240)  # Reduce speed for better observation
 
         # Episode statistics
         scores.append(total_reward)
         mean_score = np.mean(scores[-100:])
         mean_scores.append(mean_score)
         episodes.append(episode)
-
+        # best_mean_score = 1000 #for 5x5 model with danger direction.
         # Save best model
         if mean_score > best_mean_score:
             best_mean_score = mean_score
