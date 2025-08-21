@@ -1,107 +1,116 @@
-## Currently performing Training using different algorithms to optimize the RL Agent including Experimenting with Hamiltonian-Cycle with prims algorithm. 
-# Snake Game with Reinforcement Learning
-
-Welcome to my **Snake Game** project! This game is based on the classic Snake game, but with an additional layer of complexity where the snake is trained using **Reinforcement Learning (RL)** to navigate the grid and collect food autonomously. This project employs both traditional **Q-learning** and advanced **Deep Q-Networks (DQN)** to enable the agent to learn optimal behaviour.
+# Snake Game with Reinforcement Learning 🐍🤖  
 
 ## Overview
+This project reimagines the classic **Snake Game** with **Reinforcement Learning (RL)**. The snake is trained to autonomously navigate the grid, collect food, and avoid collisions using a variety of RL algorithms.  
 
-The **Snake Game** is a simple implementation of the Snake game using the **Pygame** library. The game involves a snake that moves around the grid, collecting food, and growing longer with each food item it eats. The objective is to avoid running into walls or the snake's own body. The game is controlled using a Reinforcement Learning agent that learns optimal policies to maximise its reward by collecting food without colliding.
+The implementation uses:  
+- **Q-learning** (initial baseline)  
+- **Deep Q-Networks (DQN)** for improved state generalisation  
+- **Double DQN** to address Q-value overestimation  
+- **Hamiltonian Cycle strategy** (with Prim’s algorithm and BFS fallback) to ensure safe traversal in complex board states  
 
-### Key Features
-- **Game implementation**: Originally, I built the game using the Python Turtle graphics, but I could not rely on it to implement the RL model due to it being slow and complex
-- **Pygame implementation**: The core mechanics of the snake game are implemented using Pygame of which i had to learn in a short period, so it is not perfect 
-- **Reinforcement Learning (RL)**: The snake learns to navigate the grid using both **Q-learning** and **Deep Q-Networks (DQN)**.
-- **DQN Optimisation**: After extensive training using Q-learning (16+ hours with minimal progress), the agent has been switched to a DQN model for better performance.
-- **Backup Path Strategy**: The snake is designed to use **saved weights** from previous trainings.
-- The saved paths are inside some specifically named files, e.g "old_q_table_files", "weight_file_for_DQN"..............
+## Key Features
+- **Core Game**: Built in **Pygame** with custom snake, food, and scoreboard logic.  
+- **Reinforcement Learning**:  
+  - Q-learning (basic)  
+  - DQN (neural network-based Q-learning)  
+  - Double DQN (improves stability and performance)  
+- **Fallback Strategies**:  
+  - BFS-based safe path search for mid-game navigation  
+  - Hamiltonian cycle generation (Prim’s algorithm) for long survival runs  
+- **Saved Weights**: Automatically loads existing `.pth` or `.npy` weights for resuming training or running greedy play.  
+- **Custom UI**: `GameOver` overlay with restart option.  
+- **Experimentation**: Multiple play/test scripts (`Small Grid`, `Full Hamiltonian`, etc.) to evaluate different strategies.  
+
+---
 
 ## Project Structure
 ```
-Turtle_snake_game
 pygame_snake_game/
-├── Readme.md                # Project overview and details
-├── RL_Agent_with_DQN.py     # Implementation of RL Agent with DQN
-├── RL_model_optimizing_Q.py # Optimization of Q-values in RL
-├── Rl_model.py              # Original RL model with just Q-Learning for training the agent
-├── csv_files                # Training data and CSV files for Q-table
-├── old_q_table_files        # Older Q-tables (training data used in Q-learning)
-├── weight_file_for_DQN     # Saved weights for the trained DQN model
-├── example.py               # Example of using pygame
-├── food.py                  # Game logic for food generation
-├── highscore_for_snake_game.txt # Stores the highscore for the game
-├── main.py                  # Human playable game file
-├── scoreboard.py            # Logic to display and track the score
-├── snake.py                 # Snake class and movement logic
-├── snake_game.py            # Full game logic for running the Snake game
-└── current_q_table.csv      # The current Q-table used in training (before DQN)
+├── Play_game(Small_grid).py      # Play Snake on a 400x400 grid with RL + fallback
+├── Full_Ham_implementation.py    # Snake with Hamiltonian Cycle strategy
+├── RL_Agent_with_DQN.py          # DQN agent implementation
+├── SG_Double_DQN_training.py     # Double DQN training on smaller grid
+├── RL_model_optimizing_Q.py      # Optimisation for Q-learning
+├── Rl_model.py                   # Pure Q-learning baseline
+├── gameover.py                   # GameOver screen logic
+├── snake.py, food.py, scoreboard.py, snake_game.py   # Core game logic
+├── old_q_table_files/            # Archived Q-tables
+├── weight_file_for_DQN/          # Saved DQN model weights
+├── WEIGHTS/Current_q_TABLE/      # Current training tables/weights
+└── plots/                        # Cycle visualisations from Hamiltonian generator
 ```
+
+---
 
 ## Training Process
 
-### Q-Learning (Initial Attempts)
-Initially, I tried to train the snake using **Q-learning**, spending over **16 hours** optimising the Q-table. However, due to the complexity of the game environment, the agent struggled to generalise its learning. The snake often failed to find optimal paths and would get stuck moving around food. Even after fine-tuning the rewards, it still preferred staying near the food and accumulating rewards for being close for each step; it was like it was cheating to gain rewards.
+### Q-Learning (Baseline)
+- Ran for 16+ hours, struggled to generalise.  
+- Agent often looped near food, exploiting reward shaping.  
 
-### Transition to DQN
-After recognising the limitations of traditional Q-learning, I decided to use **Deep Q-Networks (DQN)**. DQN leverages neural networks to approximate Q-values and handle large state spaces more effectively. Unfortunately, I am not so good with DQN so I had to outsource this part. While the DQN model is still a work in progress, it has shown better performance compared to Q-learning, and the agent is steadily learning to navigate the game environment.
+### Deep Q-Network (DQN)
+- Neural net approximates Q-values for large state space.  
+- Much faster convergence compared to tabular Q-learning.  
 
-### Key Challenges
-- **State-space complexity**: The large number of possible states in the game made it difficult for Q-learning to find a solution.
-- **Food and collision detection**: Despite optimised rewards, the snake often moved inefficiently or got stuck in loops.
-- **Training time**: The switch to DQN has significantly reduced training time compared to Q-learning, although there are still challenges to overcome before the game is fully completed.
+### Double DQN
+- Currently the main training algorithm.  
+- Fixes overestimation of Q-values common in vanilla DQN.  
+- Produces more stable and consistent snake behaviour.  
 
-## Current Status
+### Hamiltonian Cycle + Fallbacks
+- Implemented **Prim’s algorithm** to generate Hamiltonian cycle.  
+- Added **BFS safe path search** as a mid-game shortcut.  
+- Uses **cycle rotation** to continue safe traversal when nearly full.  
 
-- The snake is currently being trained using **DQN** and is gradually improving.
-- I am currently trying to implement the Rainbow Algorithm to see if i can get any improvement from using DQN. 
-- I am going to research the Hamiltonian cycle strategy to implement as a fallback to prevent the snake from getting stuck in complex situations it was invented by <a href="https://openstax.org/books/contemporary-mathematics/pages/12-7-hamilton-cycles#:~:text=In%201857%2C%20a%20mathematician%20named,visited%20every%20vertex%20exactly%20once.">William Hamilton</a>
-	- I got this idea from <a href="https://www.youtube.com/watch?v=tjQIO1rqTBE">this youtube video</a> but the method was gotten from <a href="https://johnflux.com/page/2/">John Tapsell</a>
-- The game mechanics are complete, but there are still optimisations to be made, especially around the DQN model and its convergence.
-- Training is ongoing, and further improvements are expected as more data is collected.
+### Current Focus
+- Training and evaluating Double DQN agent.  
+- Integrating Hamiltonian fallback for robust play.  
+- Considering advanced algorithms (Rainbow DQN, etc.) for further performance boost.  
 
-## Training Videos
+---
 
-### Training with just Q-learning
-https://github.com/user-attachments/assets/9a7807bd-ef47-43d8-91c9-7b2612a8846d
+## How to Run
 
-### Training with DQN
+Clone the repo:
+```bash
+git clone https://github.com/kdavid001/snake_game.git
+cd snake-game/pygame_snake_game
+```
+Install dependencies
+```
+pip install pygame torch numpy
+```
+
+Run specific Setup
+```
+python Play_game(Small_grid).py       # Double DQN on smaller grid
+python Full_Ham_implementation.py     # With Hamiltonian fallback
+python Rl_model.py                    # Tabular Q-learning baseline
+```
+
+# Training Videos
 
 
-https://github.com/user-attachments/assets/c5fbc0c0-d70d-4c23-a66e-f8ea0ef7c8a0 
-
-
-
-## How to Run the Game
-
-To run the snake game with the RL agent:
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/kdavid001/snake_game.git
-   cd pygame_snake_game
-   ```
-2. Install dependencies (make sure you have Python 3 and Pygame installed):
-   ```pip install pygame```
-3. Run the game:
-   ```python <file name>.py```  e.g Rl_Model
-4. The snake will automatically start training. If a trained model file is not found, it will create one and start training from the beginning.
-   
-Future Work
-	<li>	Policy Improvement: Continue optimising the DQN model to improve the agent’s decision-making process. </li>
-	<li>	Enhanced Agent Behaviour: Implement more sophisticated reward shaping to speed up convergence. </li>
-	<li>	Use of Hamiltonian Cycle: Incorporate Hamiltonian cycle logic for fail-safe movement. </li>
-	<li>	User Interface: Enhance the game interface for better user interaction and visualisation of training progress. </li>
+# Future Works:  
+- Further optimise Double DQN hyperparameters.
+- Try Rainbow DQN and other advanced RL algorithms.
+- Improve reward shaping to reduce looping behaviour.
+- Enhance Pygame UI with visual overlays for agent decisions and cycle paths.  
 
 ## Contributions
-Feel free to contribute by:
-	<li> Suggesting improvements to the RL model.</li>
-	<li> Proposing optimisations for the game’s mechanics.</li>
-	<li> Reporting any bugs or issues you encounter.</li>
- 
+Please Feel Free to contribute by Opening an issue.
+
  ## License
 
 This project is licensed under the MIT License – see the [LICENSE](./LICENSE) file for details.
 
 ## Attribution
+
+Credits for sources of inspiration:
+- William Hamilton (for Hamiltonian cycles): [OpenStax link](https://openstax.org/books/contemporary-mathematics/pages/12-7-hamilton-cycles#:~:text=In%201857%2C%20a%20mathematician%20named,visited%20every%20vertex%20exactly%20once.)
+- John Tapsell (Hamiltonian cycle method): [John Tapsell's blog](https://johnflux.com/page/2/)
+- The YouTube video that inspired the Hamiltonian cycle idea: [YouTube link](https://www.youtube.com/watch?v=tjQIO1rqTBE)
 
 This project was created by [David Ogunmola](https://github.com/kdavid001).  
 If you use this project in any way (including derivatives or distributions), please include visible credit to the author in your documentation, app interface, or any public display of the software.
