@@ -58,6 +58,18 @@ The implementation uses:
 ```
 
 ---
+## Training Results
+| Model / Strategy                  | Highest score | Highest Mean Score | Notes |
+|-----------------------------------|---------------|--------------------|-------|
+| `Current DQN WEIGHTS/snake_dqn.pth` | 59            | N/A                | Baseline DQN training run |
+| `Current DQN WEIGHTS/Weight_wn_Reward_sys.pth` | 67            | 1900               | Improved with reward shaping |
+| `Current DQN WEIGHTS/Best_current_weight.pth.pth` | 52            | 1500               | Considered best performing DQN so far |
+| `CNN_weights(5x5).pth`            | 32            | 1000               | CNN filter size 5x5 |
+| `CNN_weights(7x7).pth`            | 16            | 600                | CNN filter size 7x7 |
+| Hamiltonian Cycle                  | ∞             | N/A                  | Survives indefinitely once path is set |
+| BFS – Breadth First Search         | 150           | N/A                | Reliable but not optimal |
+| SG – 400×400 Grid                  | 54            | 1700               | Double DQN on small grid |
+---
 ## Random Hamiltonian Cycle example
 <img width="400" height="400" alt="Ham_cycle for 400X400" src="https://github.com/user-attachments/assets/cac9b2b0-9d16-4e6f-94b1-1cbb71250c4f"/>
 
@@ -109,19 +121,6 @@ python Play_game(Small_grid).py       # Double DQN on smaller grid
 python Full_Ham_implementation.py     # With Hamiltonian fallback
 python Rl_model.py                    # Tabular Q-learning baseline
 ```
-## Training Results
-| Model / Strategy                  | Highest score | Highest Mean Score | Notes |
-|-----------------------------------|---------------|--------------------|-------|
-| `Current DQN WEIGHTS/snake_dqn.pth` | 59            | N/A                | Baseline DQN training run |
-| `Current DQN WEIGHTS/Weight_wn_Reward_sys.pth` | 67            | 1900               | Improved with reward shaping |
-| `Current DQN WEIGHTS/Best_current_weight.pth.pth` | 52            | 1500               | Considered best performing DQN so far |
-| `CNN_weights(5x5).pth`            | 32            | 1000               | CNN filter size 5x5 |
-| `CNN_weights(7x7).pth`            | 16            | 600                | CNN filter size 7x7 |
-| Hamiltonian Cycle                  | ∞             | N/A                  | Survives indefinitely once path is set |
-| BFS – Breadth First Search         | 150           | N/A                | Reliable but not optimal |
-| SG – 400×400 Grid                  | 54            | 1700               | Double DQN on small grid |
-# Training Videos
-
 
 # Future Works:  
 - Further optimise Double DQN hyperparameters.
