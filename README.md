@@ -58,6 +58,7 @@ The implementation uses:
 ```
 
 ---
+## Random Hamiltonian Cycle example
 
 ## Training Process
 

@@ -40,7 +40,7 @@ def play_game():
 
             game.render(screen, clock.get_fps())
             pygame.display.flip()
-            clock.tick(60)
+            clock.tick(1000)
 
         print(f"Episode {episode + 1}: Total_Reward = {Total_reward:.2f}")
     pygame.quit()

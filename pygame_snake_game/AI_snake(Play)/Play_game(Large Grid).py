@@ -36,7 +36,7 @@ draw_cycle(cycle, game.height // BLOCK_SIZE, game.width // BLOCK_SIZE)
 # Setup
 def should_fallback(snake, game):
     short_threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.03
-    long_threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.08
+    long_threshold = (game.width // BLOCK_SIZE) * (game.height // BLOCK_SIZE) * 0.04
     return short_threshold, long_threshold
 
 
@@ -101,7 +101,7 @@ def play_game(cycle):
 
             game.render(screen, clock.get_fps())
             pygame.display.flip()
-            clock.tick(60)
+            clock.tick(1000)
 
         print(f"Episode {episode + 1}: Total_Reward = {Total_reward:.2f}")
     pygame.quit()
