@@ -7,7 +7,7 @@ The implementation uses:
 - **Q-learning** (initial baseline)  
 - **Deep Q-Networks (DQN)** for improved state generalisation  
 - **Double DQN** to address Q-value overestimation  
-- **Hamiltonian Cycle strategy** (with Prim’s algorithm and BFS fallback) to ensure safe traversal in complex board states  
+- **Hamiltonian Cycle strategy** (with Prim’s algorithm and BFS - Breath First Search fallback) to ensure safe traversal in complex board states  
 
 ## Key Features
 - **Core Game**: Built in **Pygame** with custom snake, food, and scoreboard logic.  
@@ -48,19 +48,23 @@ The implementation uses:
         ├── RL_Agent_with_DDQN_CNN.py         # Double-DQN agent implementation with a 7x7 or 5x5 Grid CNN
         ├── RL_model_optimizing_Q.py          # Optimisation for Q-learning
         └── SG_Double_DDQN_training.py        # Double DQN training on smaller grid
-    └── **WEIGHTS**
-    ├── old_q_table_files/            # Archived Q-tables
-    ├── Current_q_TABLE/              # Current training tables/weights
-    ├── RAINBOW_WEIGHTS/              # Training Weights for Rainbow Implementation
-    └── weight_file_for_DQN/          # Saved DDQN model weights
+    ├── **WEIGHTS**
+        ├── old_q_table_files/            # Archived Q-tables
+        ├── Current_q_TABLE/              # Current training tables/weights
+        ├── RAINBOW_WEIGHTS/              # Training Weights for Rainbow Implementation
+        └── weight_file_for_DQN/          # Saved DDQN model weights
 ├── **pygame_snake_game_gg_colab**        # This is a folder made specifically to train using google colab GPU for more complete algorithm-> work in progress
 └── **Turtle_snake-game**                 # Turtle-game Version
 ```
 
 ---
 ## Random Hamiltonian Cycle example
+<img width="400" height="400" alt="Ham_cycle for 400X400" src="https://github.com/user-attachments/assets/cac9b2b0-9d16-4e6f-94b1-1cbb71250c4f"/>
 
-## Training Process
+
+## Game Play Example
+https://github.com/user-attachments/assets/08efca55-2a8a-4dae-bd69-62efc5cd497d
+
 
 ### Q-Learning (Baseline)
 - Ran for 16+ hours, struggled to generalise.  
@@ -113,7 +117,7 @@ python Rl_model.py                    # Tabular Q-learning baseline
 | `Current DQN WEIGHTS/Best_current_weight.pth.pth` | 52            | 1500               | Considered best performing DQN so far |
 | `CNN_weights(5x5).pth`            | 32            | 1000               | CNN filter size 5x5 |
 | `CNN_weights(7x7).pth`            | 16            | 600                | CNN filter size 7x7 |
-| Hamiltonian Cycle                  | ∞             | ∞                  | Survives indefinitely once path is set |
+| Hamiltonian Cycle                  | ∞             | N/A                  | Survives indefinitely once path is set |
 | BFS – Breadth First Search         | 150           | N/A                | Reliable but not optimal |
 | SG – 400×400 Grid                  | 54            | 1700               | Double DQN on small grid |
 # Training Videos
