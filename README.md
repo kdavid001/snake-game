@@ -28,12 +28,12 @@ The implementation uses:
 ```
 **pygame_snake_game**/
 ├── **pygame_snake_game**
-    ├── **AI_Snake**(Play)  
-        ├── Full_Ham_implementation.py                  # Snake with Hamiltonian Cycle strategy
-        ├── main.py                                     # Human Playable Game
-        ├── Play_game(Small_grid).py                    # Play Snake on a 400x400 grid with RL + fallback
-        ├── Play_game(Snake AI).py                      # Purely Snake AI with Double-Deep Q Networks
-        └── Play_game_Advanced_Hamiltonian_cycle.py     # Play Snake on a 800x600 grid with RL + fallback
+    ├── **AI_Snake_Play**  
+        ├── Full_Ham_implementation.py                 # Snake with Hamiltonian Cycle strategy
+        ├── main.py                                    # Human Playable Game
+        ├── Play_game_Small_grid.py                    # Play Snake on a 400x400 grid with RL + fallback
+        ├── Play_game_Snake_AI.py                      # Purely Snake AI with Double-Deep Q Networks
+        └── Play_game_Advanced_Hamiltonian_cycle.py    # Play Snake on a 800x600 grid with RL + fallback
     ├── **game_attributes**
         ├── gameover.py                                       # GameOver screen logic
         └── snake.py, food.py, scoreboard.py, snake_game.py   # Core game logic
@@ -42,7 +42,7 @@ The implementation uses:
         ├── Hamiltonian_cycle.py
         ├── nan.py
         └── prims_algorithm.py
-    ├── **RL_agents(Training)**
+    ├── **RL_agents_Training**
         ├── Rainbow-RL.py                     # Original RL code with just Q-Learning.
         ├── Rl_model.py                       # Pure Q-learning baseline
         ├── RL_Agent_with_DDQN_CNN.py         # Double-DQN agent implementation with a 7x7 or 5x5 Grid CNN
@@ -107,7 +107,7 @@ https://github.com/user-attachments/assets/08efca55-2a8a-4dae-bd69-62efc5cd497d
 ### Challenge.
 #### The only perfectly working model is the 
 ```
-Play_game(Small_grid).py          # Play Snake on a 400x400 grid with RL + fallback
+Play_game_Small_grid.py          # Play Snake on a 400x400 grid with RL + fallback
 ```
 #### due to its small size(State Space - 400 X 400 -> 20 colums and 20 rows)
 
@@ -127,7 +127,7 @@ pip install pygame torch numpy
 
 Run specific Setup
 ```
-python Play_game(Small_grid).py       # Double DQN on smaller grid
+python Play_game_Small_grid.py        # Double DQN on smaller grid
 python Full_Ham_implementation.py     # With Hamiltonian fallback
 python Rl_model.py                    # Tabular Q-learning baseline
 ```

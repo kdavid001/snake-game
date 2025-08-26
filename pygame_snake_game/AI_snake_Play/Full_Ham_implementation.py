@@ -4,7 +4,7 @@ import pygame
 import sys
 import sys, os
 
-sys.path.append(os.path.abspath("../RL_agents(Training)"))
+sys.path.append(os.path.abspath("../RL_agents_Training"))
 from RL_Agent_with_DDQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
 sys.path.append(os.path.abspath("../Hamiltonian_Implementation"))
 from ham_cycle import prim_maze_generator, draw_cycle, find_safe_path, rotate_cycle

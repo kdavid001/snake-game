@@ -7,7 +7,7 @@ import sys
 import sys, os
 from collections import deque
 
-sys.path.append(os.path.abspath("../RL_agents(Training)"))
+sys.path.append(os.path.abspath("../RL_agents_Training"))
 from RL_Agent_with_DDQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
 
 sys.path.append(os.path.abspath("../Hamiltonian_Implementation"))

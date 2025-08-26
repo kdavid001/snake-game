@@ -4,7 +4,7 @@ import torch
 import pygame
 import sys
 
-sys.path.append(os.path.abspath("../RL_agents(Training)"))
+sys.path.append(os.path.abspath("../RL_agents_Training"))
 from RL_Agent_with_DDQN import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
 
 

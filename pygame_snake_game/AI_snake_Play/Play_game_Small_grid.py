@@ -8,7 +8,7 @@ import torch
 sys.path.append(os.path.abspath("../game_attributes"))
 from gameover import GameOver
 
-sys.path.append(os.path.abspath("../RL_agents(Training)"))
+sys.path.append(os.path.abspath("../RL_agents_Training"))
 from SG_Double_DQN_training import DQNAgent, SnakeGame, WIDTH, HEIGHT, device
 
 sys.path.append(os.path.abspath("../Hamiltonian_Implementation"))
