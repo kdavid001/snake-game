@@ -80,11 +80,12 @@ https://github.com/user-attachments/assets/08efca55-2a8a-4dae-bd69-62efc5cd497d
 
 ### Q-Learning (Baseline)
 - Ran for 16+ hours, struggled to generalise.  
-- Agent often looped near food, exploiting reward shaping.  
+- Agent often looped near food, exploiting reward shaping.
 
 ### Deep Q-Network (DQN)
 - Neural net approximates Q-values for large state space.  
-- Much faster convergence compared to tabular Q-learning.  
+- Much faster convergence compared to tabular Q-learning.
+- Works well when State vector is large. 
 
 ### Double DQN
 - Currently the main training algorithm.  
@@ -99,7 +100,16 @@ https://github.com/user-attachments/assets/08efca55-2a8a-4dae-bd69-62efc5cd497d
 ### Current Focus
 - Training and evaluating Double DQN agent.  
 - Integrating Hamiltonian fallback for robust play.  
-- Considering advanced algorithms (Rainbow DQN, etc.) for further performance boost.  
+- Considering advanced algorithms (Rainbow DQN, etc.) for further performance boost.
+
+---
+
+### Challenge.
+#### The only perfectly working model is the 
+```
+Play_game(Small_grid).py          # Play Snake on a 400x400 grid with RL + fallback
+```
+#### due to its small size(State Space - 400 X 400 -> 20 colums and 20 rows)
 
 ---
 
@@ -125,8 +135,9 @@ python Rl_model.py                    # Tabular Q-learning baseline
 # Future Works:  
 - Further optimise Double DQN hyperparameters.
 - Try Rainbow DQN and other advanced RL algorithms.
-- Improve reward shaping to reduce looping behaviour.
-- Enhance Pygame UI with visual overlays for agent decisions and cycle paths.  
+- Try Rainbow and Double DQN by passing a grid instead using Covolutional Networks.
+- Improve reward shaping to try and reduce looping behaviour.
+- Enhance Pygame UI with visual overlays for agent decisions and cycle paths.
 
 ## Contributions
 Please Feel Free to contribute by Opening an issue.
